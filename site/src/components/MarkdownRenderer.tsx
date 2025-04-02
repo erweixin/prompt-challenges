@@ -12,12 +12,6 @@ interface MarkdownRendererProps {
   content: string;
 }
 
-// 定义代码块的props类型
-interface CodeProps {
-  className?: string;
-  inline?: boolean;
-  children: React.ReactNode;
-}
 
 export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
   return (
@@ -35,7 +29,8 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
           ul: (props) => <ul className="list-disc pl-8 mb-4" {...props} />,
           ol: (props) => <ol className="list-decimal pl-8 mb-4" {...props} />,
           li: (props) => <li className="mb-1" {...props} />,
-          code: ({ inline, className, children, ...props }: CodeProps) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          code: ({ inline, className, children, ...props }: any) => {
             if (inline) {
               return (
                 <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-red-600 dark:text-red-400 text-sm" {...props}>

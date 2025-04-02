@@ -4,20 +4,19 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 interface ChallengePageProps {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 }
 
 export default async function ChallengePage({ params }: ChallengePageProps) {
-  const challenge = getChallengeById(params.id);
+  const { id } = await params
+  const challenge = getChallengeById(id);
   
   if (!challenge) {
     notFound();
   }
   
   const content = await getChallengeContent(challenge.path);
-  const { prev, next } = getAdjacentChallenges(params.id);
+  const { prev, next } = getAdjacentChallenges(id);
   
   const difficultyColors = {
     'warm': {

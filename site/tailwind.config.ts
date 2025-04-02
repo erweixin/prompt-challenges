@@ -1,5 +1,4 @@
 import type { Config } from 'tailwindcss';
-// @ts-expect-error - tailwindcss plugin types are not properly defined
 import typography from '@tailwindcss/typography';
 
 const config: Config = {
