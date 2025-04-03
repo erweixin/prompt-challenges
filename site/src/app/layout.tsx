@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Prompt Challenges",
-  description: "查看和测试 Prompt 挑战",
+  description: "AI Prompt Engineering Challenges",
 };
 
 export default function RootLayout({
@@ -24,26 +24,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html>
       <Analytics />
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="min-h-screen flex flex-col">
-          <header className="border-b border-gray-200 dark:border-gray-800">
-            <div className="container mx-auto px-4 py-4">
-              <h1 className="text-2xl font-bold">Prompt Challenges</h1>
-            </div>
-          </header>
-          <main className="flex-grow container mx-auto px-4 py-8">
-            {children}
-          </main>
-          <footer className="border-t border-gray-200 dark:border-gray-800">
-            <div className="container mx-auto px-4 py-4 text-center text-sm text-gray-500">
-              © {new Date().getFullYear()} Prompt Challenges
-            </div>
-          </footer>
-        </div>
+        {children}
       </body>
     </html>
   );

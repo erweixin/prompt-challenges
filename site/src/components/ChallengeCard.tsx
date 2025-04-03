@@ -1,11 +1,19 @@
 import { Challenge } from '../types/challenge';
 import Link from 'next/link';
+import { getDictionary } from '../utils/i18n';
 
 interface ChallengeCardProps {
   challenge: Challenge;
+  locale: string;
 }
 
-export default function ChallengeCard({ challenge }: ChallengeCardProps) {
+export default function ChallengeCard({ challenge, locale }: ChallengeCardProps) {
+  const dict = getDictionary(locale);
+  
+  // 根据语言选择标题和描述
+  const displayTitle = locale === 'en' && challenge.titleEn ? challenge.titleEn : challenge.title;
+  const displayDescription = locale === 'en' && challenge.descriptionEn ? challenge.descriptionEn : challenge.description;
+  
   const difficultyColors = {
     'warm': {
       bg: 'bg-green-50 dark:bg-green-900/20',
@@ -34,19 +42,21 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
   };
   
   const colorClass = difficultyColors[challenge.difficulty];
+  const hrefPath = `/${locale}/challenge/${challenge.id}` as const;
   
   return (
-    <Link href={`/challenge/${challenge.id}`} className="block">
-      <div className={`border rounded-xl p-6 transition-all duration-200 ${colorClass.bg} ${colorClass.border} ${colorClass.hover} hover:shadow-lg`}>
+    <Link 
+      href={hrefPath}
+      className="block h-full"
+    >
+      <div className={`border rounded-xl p-6 h-full flex flex-col transition-all duration-200 ${colorClass.bg} ${colorClass.border} ${colorClass.hover} hover:shadow-lg`}>
         <div className="flex justify-between items-start mb-3">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{challenge.title}</h3>
-          <span className={`text-xs px-3 py-1 rounded-full font-medium ${colorClass.bg} ${colorClass.text} ${colorClass.border}`}>
-            {challenge.difficulty === 'warm' ? '简单' : 
-             challenge.difficulty === 'medium' ? '中等' : 
-             challenge.difficulty === 'hard' ? '困难' : '地狱'}
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{displayTitle}</h3>
+          <span className={`text-xs px-3 py-1 rounded-full font-medium ${colorClass.bg} ${colorClass.text} ${colorClass.border} flex-shrink-0 ml-2`}>
+            {dict.difficulty[challenge.difficulty]}
           </span>
         </div>
-        <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">{challenge.description}</p>
+        <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed flex-grow">{displayDescription}</p>
       </div>
     </Link>
   );
