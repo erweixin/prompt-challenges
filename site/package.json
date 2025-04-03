@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.16",
+    "@vercel/analytics": "^1.5.0",
     "github-markdown-css": "^5.8.1",
     "lucide-react": "^0.487.0",
     "next": "15.2.4",
