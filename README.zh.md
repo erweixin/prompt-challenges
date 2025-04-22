@@ -59,6 +59,7 @@ Prompt Challenges 是一系列旨在帮助你提高 AI 提示词工程（Prompt 
 ## 学习资源
 
 - [GPT-4.1 Prompting Guide](https://cookbook.openai.com/examples/gpt4-1_prompting_guide)
+- [Prompt Engineering](https://www.kaggle.com/whitepaper-prompt-engineering)
 - [提示词工程指南](https://www.promptingguide.ai/zh)
 - [Prompt Engineering 最佳实践](https://platform.openai.com/docs/guides/prompt-engineering)
 - [AI 提示词模式](https://learnprompting.org/docs/category/-prompt-engineering-patterns)

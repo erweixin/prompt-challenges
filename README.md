@@ -59,6 +59,7 @@ Challenges are categorized by difficulty levels:
 ## Learning Resources
 
 - [GPT-4.1 Prompting Guide](https://cookbook.openai.com/examples/gpt4-1_prompting_guide)
+- [Prompt Engineering](https://www.kaggle.com/whitepaper-prompt-engineering)
 - [Prompt Engineering Guide](https://www.promptingguide.ai/)
 - [OpenAI Prompt Engineering Best Practices](https://platform.openai.com/docs/guides/prompt-engineering)
 - [AI Prompting Patterns](https://learnprompting.org/docs/category/-prompt-engineering-patterns)
