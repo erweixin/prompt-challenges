@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 构建评分 prompt
-    const scoringPrompt = `你是一个 prompt 评分专家，现在要作为一个 prompt 评比大赛的评委，你要根据<大赛题目要求>和<用户作答的提示词>，给出一个对<用户作答的提示词>的评分和反馈。
+    const scoringPrompt = `你是一个 prompt 评分专家，现在要作为一个 prompt 评比的评委，你要根据<题目要求>和<用户作答的提示词>，给出一个对<用户作答的提示词>的评分和反馈。
       - 评分标准是满分10分，分数越高表示提示词越符合要求，完全不符合要求的为 0 分。
       - 如果有硬要求没有实现，则分别减一分，最低分为 0 分。
       - 评分时要考虑提示词的清晰度、完整性、可操作性和对目标任务的适应性。
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         优化意见: {具体优化建议}
       }
 
-      ### 大赛题目要求
+      ### 题目要求
 
       ${question}
 

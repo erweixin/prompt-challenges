@@ -81,7 +81,8 @@ const dictionaries = {
       tip1: 'Be specific and clear about what you want',
       tip2: 'Provide context and examples when helpful',
       tip3: 'Use appropriate tone and style for your audience',
-      tip4: 'Test and iterate to improve your results'
+      tip4: 'Test and iterate to improve your results',
+      tip5: 'suggestions'
     }
   },
   zh: {
@@ -164,7 +165,8 @@ const dictionaries = {
       tip1: '明确具体地表达你的需求',
       tip2: '在需要时提供上下文和示例',
       tip3: '根据受众使用适当的语气和风格',
-      tip4: '测试并迭代以改进结果'
+      tip4: '测试并迭代以改进结果',
+      tip5: '优化意见'
     }
   },
 };
