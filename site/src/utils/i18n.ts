@@ -150,7 +150,7 @@ const dictionaries = {
       yourPrompt: '你的 Prompt',
       enterPrompt: '在下方输入你的 AI 提示词',
       promptPlaceholder: '在这里编写你的 prompt...',
-      scorePrompt: '评分 Prompt',
+      scorePrompt: '给 Prompt 评分',
       scoring: '评分中...',
       error: '评分过程中出现错误',
       scoreOutOf: '满分 100 分',
