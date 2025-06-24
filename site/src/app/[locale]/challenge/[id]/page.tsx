@@ -7,28 +7,28 @@ import { notFound } from 'next/navigation';
 import { getDictionary } from '../../../../utils/i18n';
 
 interface ChallengePageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }
 
 export default async function ChallengePage(props: ChallengePageProps) {
-  const { id } = await props.params;
+  const { locale, id } = await props.params;
   
   const challenge = getChallengeById(id);
-  const locale = 'en';
   const dict = getDictionary(locale);
+  const isEnglish = locale === 'en';
   
   if (!challenge) {
     notFound();
   }
   
-  const displayTitle = challenge.titleEn || challenge.title;
-  const displayDescription = challenge.descriptionEn || challenge.description;
-  
   const content = await getChallengeContent(challenge.path, locale);
   const { prev, next } = getAdjacentChallenges(id);
   
-  const prevTitle = prev && (prev.titleEn || prev.title);
-  const nextTitle = next && (next.titleEn || next.title);
+  const displayTitle = isEnglish ? (challenge.titleEn || challenge.title) : challenge.title;
+  const displayDescription = isEnglish ? (challenge.descriptionEn || challenge.description) : challenge.description;
+  
+  const prevTitle = prev && (isEnglish ? (prev.titleEn || prev.title) : prev.title);
+  const nextTitle = next && (isEnglish ? (next.titleEn || next.title) : next.title);
   
   const difficultyConfig = {
     'warm': {
@@ -76,8 +76,8 @@ export default async function ChallengePage(props: ChallengePageProps) {
   const questionRequirements = extractQuestionRequirements(content);
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10">
-      {/* Top Navigation Bar */}
+    <div className="h-[calc(100vh-500px)] bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10">
+      {/* 顶部导航栏 */}
       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -95,9 +95,6 @@ export default async function ChallengePage(props: ChallengePageProps) {
               </Link>
               <div className="h-6 w-px bg-gradient-to-b from-gray-300 to-transparent dark:from-gray-600 dark:to-transparent"></div>
               <div className="flex items-center space-x-3">
-                <div className="p-2 rounded-xl bg-white dark:bg-gray-700 shadow-sm">
-                  <span className="text-xl">{config.icon}</span>
-                </div>
                 <span className={`text-sm px-3 py-1.5 rounded-full font-semibold ${config.badge} shadow-sm`}>
                   {dict.difficulty[challenge.difficulty]}
                 </span>
@@ -118,14 +115,14 @@ export default async function ChallengePage(props: ChallengePageProps) {
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* 主要内容区域 */}
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-8rem)]">
-          {/* Left: Problem Content */}
+          {/* 左侧：题目内容 */}
           <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/20 overflow-hidden flex flex-col">
-            {/* Problem Header */}
+            {/* 题目头部 */}
             <div className={`p-8 border-b border-gray-200/50 dark:border-gray-700/50 ${config.bg} relative overflow-hidden`}>
-              {/* Background decorations */}
+              {/* 背景装饰 */}
               <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${config.gradient} opacity-10 rounded-full -translate-y-16 translate-x-16`}></div>
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-400 to-purple-400 opacity-5 rounded-full translate-y-12 -translate-x-12"></div>
               
@@ -139,7 +136,7 @@ export default async function ChallengePage(props: ChallengePageProps) {
                       {displayTitle}
                     </h1>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {dict.difficulty[challenge.difficulty]} • Prompt Engineering Challenge
+                      {dict.difficulty[challenge.difficulty]} • {isEnglish ? "Prompt Engineering Challenge" : "提示词工程挑战"}
                     </p>
                   </div>
                 </div>
@@ -149,7 +146,7 @@ export default async function ChallengePage(props: ChallengePageProps) {
               </div>
             </div>
             
-            {/* Problem Content */}
+            {/* 题目内容 */}
             <div className="flex-1 overflow-y-auto p-8">
               <div className="prose prose-gray dark:prose-invert max-w-none">
                 <div className="space-y-6">
@@ -158,7 +155,7 @@ export default async function ChallengePage(props: ChallengePageProps) {
               </div>
             </div>
             
-            {/* Problem Footer */}
+            {/* 题目底部 */}
             <div className="p-6 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50/50 to-gray-100/50 dark:from-gray-700/30 dark:to-gray-800/30">
               <div className="flex justify-between items-center">
                 {prev ? (
@@ -196,11 +193,11 @@ export default async function ChallengePage(props: ChallengePageProps) {
             </div>
           </div>
 
-          {/* Right: Input and Scoring */}
+          {/* 右侧：输入和评分 */}
           <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/20 overflow-hidden flex flex-col">
-            {/* Right Header */}
+            {/* 右侧头部 */}
             <div className="p-8 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-900/20 dark:to-purple-900/20 relative overflow-hidden">
-              {/* Background decorations */}
+              {/* 背景装饰 */}
               <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-400 opacity-10 rounded-full -translate-y-10 translate-x-10"></div>
               
               <div className="relative">
@@ -212,33 +209,36 @@ export default async function ChallengePage(props: ChallengePageProps) {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                      Write Your Prompt
+                      {isEnglish ? "Write Your Prompt" : "编写你的 Prompt"}
                     </h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Write your AI prompt based on the problem requirements
+                      {isEnglish 
+                        ? "Write your AI prompt based on the requirements"
+                        : "根据题目要求，编写你的 AI 提示词"
+                      }
                     </p>
                   </div>
                 </div>
               </div>
             </div>
             
-            {/* Scoring Component */}
+            {/* 评分组件 */}
             <div className="flex-1 overflow-y-auto">
               <div className="p-8">
                 <PromptScorer 
                   question={questionRequirements}
                   inputText={testCase.inputText}
                   llmResult={testCase.llmResult}
-                  locale="en"
+                  locale={locale}
                 />
               </div>
             </div>
             
-            {/* Right Footer */}
+            {/* 右侧底部 */}
             <div className="p-6 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50/50 to-gray-100/50 dark:from-gray-700/30 dark:to-gray-800/30">
               <div className="text-center">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  Need help? Join our community
+                  {isEnglish ? "Need help? Join our community" : "需要帮助？加入我们的社区"}
                 </p>
                 <a 
                   href="https://github.com/erweixin/prompt-challenges/discussions" 
@@ -251,7 +251,7 @@ export default async function ChallengePage(props: ChallengePageProps) {
                       <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                     </svg>
                   </div>
-                  View Discussions
+                  {isEnglish ? "View Discussions" : "查看讨论"}
                 </a>
               </div>
             </div>

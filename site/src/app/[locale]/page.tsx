@@ -3,18 +3,23 @@ export const revalidate = 0;
 
 import ChallengeList from '../../components/ChallengeList';
 import LearningResources from '../../components/LearningResources';
-// import StatsSection from '../../components/StatsSection';
 import { challenges } from '../../data/challenges';
 import { getDictionary } from '../../utils/i18n';
 
-export default function Home() {
-  const dict = getDictionary('zh');
+interface HomePageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default async function HomePage({ params }: HomePageProps) {
+  const { locale } = await params;
+  const dict = getDictionary(locale);
+  const isEnglish = locale === 'en';
   
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
       <div className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-20 overflow-hidden">
-        {/* 背景装饰 */}
+        {/* Background decorations */}
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
           <div className="absolute top-0 right-0 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
@@ -25,7 +30,7 @@ export default function Home() {
           <div className="text-center">
             <div className="inline-flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-2 rounded-full text-sm font-medium mb-6">
               <span>🚀</span>
-              <span>提升你的 AI 提示词工程能力</span>
+              <span>{isEnglish ? "Improve Your AI Prompt Engineering Skills" : "提升你的 AI 提示词工程能力"}</span>
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
@@ -62,31 +67,36 @@ export default function Home() {
               </a>
             </div>
             
-            {/* 快速统计 */}
+            {/* Quick stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl mx-auto">
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">12+</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">挑战题目</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {isEnglish ? "Challenges" : "挑战题目"}
+                </div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">4</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">难度等级</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {isEnglish ? "Difficulty Levels" : "难度等级"}
+                </div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">2</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">支持语言</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {isEnglish ? "Languages" : "支持语言"}
+                </div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">100%</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">免费开放</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {isEnglish ? "Free & Open" : "免费开放"}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Stats Section */}
-      {/* <StatsSection locale="zh" /> */}
 
       {/* Features Section */}
       <div className="py-20 bg-white dark:bg-gray-900">
@@ -96,7 +106,10 @@ export default function Home() {
               {dict.home.features.title}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              通过系统化的挑战来提升你的提示词工程技能
+              {isEnglish 
+                ? "Improve your prompt engineering skills through systematic challenges"
+                : "通过系统化的挑战来提升你的提示词工程技能"
+              }
             </p>
           </div>
           
@@ -138,9 +151,14 @@ export default function Home() {
       <div id="challenges" className="py-20 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">挑战分类</h2>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              {isEnglish ? "Challenge Categories" : "挑战分类"}
+            </h2>
             <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8">
-              选择你的难度级别，开始提升你的提示词工程技能。
+              {isEnglish 
+                ? "Choose your difficulty level and start improving your prompt engineering skills."
+                : "选择你的难度级别，开始提升你的提示词工程技能。"
+              }
             </p>
             <div className="flex justify-center">
               <a 
@@ -156,29 +174,35 @@ export default function Home() {
           </div>
           
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8">
-            <ChallengeList groups={challenges} locale="zh" />
+            <ChallengeList groups={challenges} locale={locale} />
           </div>
         </div>
       </div>
 
       {/* Learning Resources Section */}
-      <LearningResources locale="zh" />
+      <LearningResources locale={locale} />
 
       {/* CTA Section */}
       <div className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-white mb-6">
-            准备好开始你的提示词工程之旅了吗？
+            {isEnglish 
+              ? "Ready to Start Your Prompt Engineering Journey?"
+              : "准备好开始你的提示词工程之旅了吗？"
+            }
           </h2>
           <p className="text-xl text-blue-100 mb-8">
-            加入我们的社区，与其他学习者一起成长
+            {isEnglish 
+              ? "Join our community and grow together with other learners"
+              : "加入我们的社区，与其他学习者一起成长"
+            }
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a 
               href="#challenges" 
               className="bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors duration-200 flex items-center justify-center gap-2"
             >
-              开始挑战
+              {isEnglish ? "Start Challenges" : "开始挑战"}
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -189,11 +213,11 @@ export default function Home() {
               rel="noopener noreferrer"
               className="border-2 border-white text-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-blue-600 transition-colors duration-200"
             >
-              加入讨论
+              {isEnglish ? "Join Discussion" : "加入讨论"}
             </a>
           </div>
         </div>
       </div>
     </div>
   );
-}
+} 

@@ -41,8 +41,14 @@ function getLocale(request: NextRequest) {
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   
-  // 排除特定路径，如 robots.txt
-  if (pathname === '/robots.txt' || pathname === '/sitemap.xml') {
+  // 排除特定路径，如 robots.txt, sitemap.xml, api 路由等
+  if (
+    pathname === '/robots.txt' || 
+    pathname === '/sitemap.xml' ||
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname === '/favicon.ico'
+  ) {
     return NextResponse.next()
   }
   

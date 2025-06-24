@@ -37,13 +37,6 @@ export const metadata: Metadata = {
   authors: [{ name: "Prompt Challenges Team" }],
   creator: "Prompt Challenges Team",
   publisher: "Prompt Challenges",
-  alternates: {
-    canonical: "/",
-    languages: {
-      "en": "/en",
-      "zh": "/zh",
-    },
-  },
 };
 
 export default function RootLayout({
