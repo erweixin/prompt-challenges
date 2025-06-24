@@ -122,7 +122,8 @@ export default function PromptScorer({ question, inputText, llmResult, locale }:
                 } else if (parsed.type === 'error') {
                   setFeedback(parsed.error || '评分过程中出现错误');
                 }
-              } catch (e) {
+              } catch (error) {
+                console.error('Failed to parse chunk:', error);
                 // 忽略解析错误，继续处理
               }
             }
