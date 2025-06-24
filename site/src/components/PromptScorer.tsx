@@ -314,7 +314,7 @@ export default function PromptScorer({ question, inputText, llmResult, locale }:
                     </svg>
                   </div>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {dict.scorer.tips5 || 'Tips for Better Prompts'}
+                    {dict.scorer.tip5 || 'Tips for Better Prompts'}
                   </h4>
                 </div>
                 <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
