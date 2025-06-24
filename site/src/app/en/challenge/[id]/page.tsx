@@ -1,5 +1,7 @@
 import { getChallengeById, getChallengeContent, getAdjacentChallenges } from '../../../../utils/challenge-utils';
+import { getFirstTestCase, extractQuestionRequirements } from '../../../../utils/challenge-parser';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer';
+import PromptScorer from '../../../../components/PromptScorer';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDictionary } from '../../../../utils/i18n';
@@ -56,6 +58,10 @@ export default async function ChallengePage(props: ChallengePageProps) {
   };
   
   const colorClass = difficultyColors[challenge.difficulty];
+
+  // 使用解析工具获取测试数据
+  const testCase = getFirstTestCase(content);
+  const questionRequirements = extractQuestionRequirements(content);
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
@@ -82,6 +88,16 @@ export default async function ChallengePage(props: ChallengePageProps) {
         
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 border border-gray-200 dark:border-gray-700">
           <MarkdownRenderer content={content} />
+        </div>
+
+        {/* 评分组件 */}
+        <div className="mt-8">
+          <PromptScorer 
+            question={questionRequirements}
+            inputText={testCase.inputText}
+            llmResult={testCase.llmResult}
+            locale="en"
+          />
         </div>
         
         <div className="flex justify-between mt-8 mb-8 gap-4">
