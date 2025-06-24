@@ -4,94 +4,170 @@ const dictionaries = {
   en: {
     // 通用
     common: {
-      backToList: 'Back to Challenge List',
-      submitSolution: 'Submit Your Solution',
+      backToList: 'Back to List',
+      submitSolution: 'Submit Solution',
       readMore: 'Read More',
       challenges: 'Challenges',
       nextChallenge: 'Next Challenge',
       previousChallenge: 'Previous Challenge',
       viewOnGitHub: 'View on GitHub',
-      submitInfo: 'In this version, direct submission of solutions is not supported. You can write your solution locally and create a new file in the corresponding challenge folder.',
+      submitInfo: 'Submit Info',
     },
     // 难度
     difficulty: {
-      warm: 'Easy',
+      warm: 'Warm',
       medium: 'Medium',
       hard: 'Hard',
       extreme: 'Extreme',
     },
     // 主页
     home: {
-      hero: {
-        title: 'Improve Your AI Prompt Engineering Skills',
-        description: 'Master efficient AI prompt writing techniques through practice, progressing from simple to complex challenges to enhance your skills.',
-        startChallenge: 'Start Challenges',
-      },
+      title: 'Prompt Challenges',
+      subtitle: 'Level up your AI prompt engineering skills',
+      description: 'Learn and practice AI prompt engineering by solving real challenges. From beginner to expert, progressively improve your skills.',
+      getStarted: 'Get Started',
+      viewAll: 'View All',
+      learnMore: 'Learn More',
       features: {
-        progressive: {
+        title: 'Why Choose Prompt Challenges?',
+        feature1: {
+          title: 'Real Projects',
+          description: 'Challenges based on real scenarios to master practical prompt techniques'
+        },
+        feature2: {
+          title: 'Instant Feedback',
+          description: 'AI scoring system provides detailed feedback and improvement suggestions'
+        },
+        feature3: {
           title: 'Progressive Learning',
-          description: 'From simple text summaries to complex counterfactual reasoning, each challenge is carefully designed to steadily improve your skills.',
+          description: 'From simple to complex, progressively improve your skills'
         },
-        practical: {
-          title: 'Practice-Oriented',
-          description: 'Each challenge is based on real-world scenarios, allowing you to learn and grow through practice while mastering practical prompt engineering techniques.',
-        },
-        community: {
+        feature4: {
           title: 'Community Support',
-          description: 'Join an active community to exchange experiences with other learners, share solutions, and grow together.',
-        },
+          description: 'Join an active community to share experiences and solutions'
+        }
       },
-      challengeSection: {
-        title: 'Challenge List',
-        description: 'From easy to extreme difficulty, each challenge is a step towards improving your prompt engineering skills.',
+      stats: {
+        title: 'Community Stats',
+        challenges: 'Challenges',
+        users: 'Active Users',
+        solutions: 'Solutions',
+        languages: 'Languages'
+      },
+      resources: {
+        title: 'Learning Resources',
+        description: 'Help you better master prompt engineering',
+        books: 'Recommended Books',
+        courses: 'Online Courses',
+        tools: 'Useful Tools',
+        community: 'Community Discussions'
       },
     },
+    scorer: {
+      yourPrompt: 'Your Prompt',
+      enterPrompt: 'Enter your AI prompt below',
+      promptPlaceholder: 'Write your prompt here...',
+      scorePrompt: 'Score Prompt',
+      scoring: 'Scoring...',
+      error: 'Error occurred during scoring',
+      scoreOutOf: 'Score out of 100',
+      excellent: 'Excellent!',
+      good: 'Good job!',
+      fair: 'Fair attempt',
+      needsImprovement: 'Needs improvement',
+      poor: 'Poor',
+      feedback: 'Feedback',
+      tips: 'Tips for Better Prompts',
+      tip1: 'Be specific and clear about what you want',
+      tip2: 'Provide context and examples when helpful',
+      tip3: 'Use appropriate tone and style for your audience',
+      tip4: 'Test and iterate to improve your results',
+      tip5: 'suggestions'
+    }
   },
   zh: {
     // 通用
     common: {
-      backToList: '返回挑战列表',
-      submitSolution: '提交你的解决方案',
+      backToList: '返回列表',
+      submitSolution: '提交解答',
       readMore: '阅读更多',
-      challenges: '挑战列表',
-      nextChallenge: '下一个挑战',
-      previousChallenge: '上一个挑战',
-      viewOnGitHub: '查看 GitHub 仓库',
-      submitInfo: '在这个版本中，暂不支持直接提交解决方案。你可以在本地编写你的解决方案，并在相应的挑战文件夹中创建一个新文件。',
+      challenges: '挑战',
+      nextChallenge: '下一题',
+      previousChallenge: '上一题',
+      viewOnGitHub: '在 GitHub 上查看',
+      submitInfo: '提交信息',
     },
     // 难度
     difficulty: {
-      warm: '简单',
+      warm: '入门',
       medium: '中等',
       hard: '困难',
-      extreme: '地狱',
+      extreme: '极难',
     },
     // 主页
     home: {
-      hero: {
-        title: '提升你的 AI 提示词工程能力',
-        description: '通过实践来掌握高效的 AI 提示词编写技巧，从简单到复杂，循序渐进地提升你的能力。',
-        startChallenge: '开始挑战',
-      },
+      title: 'Prompt Challenges',
+      subtitle: '提升你的 AI 提示词工程技能',
+      description: '通过解决实际挑战来学习和练习 AI 提示词工程。从入门到专家，逐步提升你的技能。',
+      getStarted: '开始挑战',
+      viewAll: '查看全部',
+      learnMore: '了解更多',
       features: {
-        progressive: {
-          title: '循序渐进',
-          description: '从简单的文本摘要到复杂的反事实推理，每个挑战都经过精心设计，确保你的技能稳步提升。',
+        title: '为什么选择 Prompt Challenges？',
+        feature1: {
+          title: '实际项目',
+          description: '基于真实场景的挑战，让你掌握实用的提示词技巧'
         },
-        practical: {
-          title: '实践导向',
-          description: '每个挑战都基于真实场景，让你在实践中学习和成长，掌握实用的提示词工程技巧。',
+        feature2: {
+          title: '即时反馈',
+          description: 'AI 评分系统提供详细的反馈和改进建议'
         },
-        community: {
+        feature3: {
+          title: '渐进学习',
+          description: '从简单到复杂，循序渐进地提升技能'
+        },
+        feature4: {
           title: '社区支持',
-          description: '加入活跃的社区，与其他学习者交流经验，分享解决方案，共同进步。',
-        },
+          description: '加入活跃的社区，分享经验和解决方案'
+        }
       },
-      challengeSection: {
-        title: '挑战列表',
-        description: '从简单到地狱难度，每个挑战都是你提升提示词工程能力的阶梯。',
+      stats: {
+        title: '社区数据',
+        challenges: '挑战数量',
+        users: '活跃用户',
+        solutions: '提交解答',
+        languages: '支持语言'
+      },
+      resources: {
+        title: '学习资源',
+        description: '帮助你更好地掌握提示词工程',
+        books: '推荐书籍',
+        courses: '在线课程',
+        tools: '实用工具',
+        community: '社区讨论'
       },
     },
+    scorer: {
+      yourPrompt: '你的 Prompt',
+      enterPrompt: '在下方输入你的 AI 提示词',
+      promptPlaceholder: '在这里编写你的 prompt...',
+      scorePrompt: '给 Prompt 评分',
+      scoring: '评分中...',
+      error: '评分过程中出现错误',
+      scoreOutOf: '满分 100 分',
+      excellent: '优秀！',
+      good: '做得很好！',
+      fair: '一般',
+      needsImprovement: '需要改进',
+      poor: '较差',
+      feedback: '反馈',
+      tips: '提示词编写技巧',
+      tip1: '明确具体地表达你的需求',
+      tip2: '在需要时提供上下文和示例',
+      tip3: '根据受众使用适当的语气和风格',
+      tip4: '测试并迭代以改进结果',
+      tip5: '优化意见'
+    }
   },
 };
 
