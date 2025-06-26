@@ -1,5 +1,5 @@
 import { getChallengeById, getChallengeContent, getAdjacentChallenges } from '../../../../utils/challenge-utils';
-import { getFirstTestCase, extractQuestionRequirements, getAllTestCases, extractDifficulty } from '../../../../utils/challenge-parser';
+import { ChallengeLoader } from '../../../../utils/challenge-loader';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer';
 import PromptScorer from '../../../../components/PromptScorer';
 import Link from 'next/link';
@@ -71,11 +71,12 @@ export default async function ChallengePage(props: ChallengePageProps) {
   
   const config = difficultyConfig[challenge.difficulty];
 
-  // 使用解析工具获取测试数据
-  const testCase = getFirstTestCase(content);
-  const allTestCases = getAllTestCases(content);
-  const questionRequirements = extractQuestionRequirements(content);
-  const difficulty = extractDifficulty(content);
+  // 使用新解析器获取结构化挑战数据
+  const parsed = ChallengeLoader.load(content);
+  const testCase = parsed.metadata.testCases[0];
+  const allTestCases = parsed.metadata.testCases;
+  const questionRequirements = parsed.content; // 直接用Markdown主体
+  const difficulty = parsed.metadata.difficulty;
   
   return (
     <div className="bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10">
@@ -151,7 +152,7 @@ export default async function ChallengePage(props: ChallengePageProps) {
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
               <div className="prose prose-gray dark:prose-invert max-w-none prose-sm sm:prose-base">
                 <div className="space-y-4 sm:space-y-6">
-                  <MarkdownRenderer content={content} />
+                  <MarkdownRenderer content={questionRequirements} />
                 </div>
               </div>
             </div>
