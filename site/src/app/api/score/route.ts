@@ -14,6 +14,7 @@ interface ScoreRequest {
     description?: string;
   }>;
   difficulty?: string;
+  promptTemplate?: string;
 }
 
 interface TestResult {
@@ -151,6 +152,10 @@ ${question}
 ${userPrompt}
 \`\`\`
 
+## 其他要求
+ - 完全无关的提示词可以赋 0 分
+ - 要求输出尽量简介
+
 ## 测试用例评估
 
 ${testCases.map((tc, i) => `
@@ -160,7 +165,7 @@ ${testCases.map((tc, i) => `
 ${tc.inputText}
 \`\`\`
 
-**期望输出:**
+**该测试用例的输出结果:**
 \`\`\`
 ${tc.llmResult}
 \`\`\`
@@ -195,8 +200,6 @@ ${tc.llmResult}
     "测试结果": [
       {
         "testCaseIndex": 0,
-        "inputText": "测试输入1",
-        "expectedOutput": "期望输出1",
         "score": 该用例得分,
         "feedback": "该用例反馈"
       }
@@ -210,7 +213,7 @@ ${tc.llmResult}
 export async function POST(request: NextRequest) {
   try {
     const body: ScoreRequest = await request.json();
-    const { userPrompt, question, testCases = [], difficulty = 'medium' } = body;
+    const { userPrompt, question, testCases = [], promptTemplate, difficulty = 'medium' } = body;
 
     if (!OPENROUTER_API_KEY) {
       return NextResponse.json(
@@ -227,11 +230,50 @@ export async function POST(request: NextRequest) {
     // }
 
     // 构建测试用例数组
-    const allTestCases = testCases;
+    // const allTestCases = testCases;
+
+    const allCase = testCases.map(item => {
+      return new Promise<{
+        inputText: string,
+        llmResult: string,
+        description: string,
+      }>(async res => {
+        const llmResult = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [
+              {
+                role: 'user',
+                content: `变量说明：
+                          - 你的提示词: ${userPrompt}
+                          - 文本内容: ${item.inputText}
+                          ${promptTemplate}`,
+              },
+            ],
+            temperature: 0.1,
+            max_tokens: 2000,
+            // stream: true,
+          }),
+        })
+        const text = await llmResult.text();
+        const target = JSON.parse(text);
+        res({
+          llmResult: target['choices'][0].message['content'],
+          inputText: item.inputText,
+          description: item.inputText
+        })
+      })
+    });
+
+    const result = await Promise.all(allCase);
 
     // 构建增强的评分prompt
-    const scoringPrompt = buildEnhancedScoringPrompt(userPrompt, question, allTestCases, difficulty);
-
+    const scoringPrompt = buildEnhancedScoringPrompt(userPrompt, question, result, difficulty);
     // 调用 DeepSeek API 进行流式处理
     const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: 'POST',
@@ -308,11 +350,11 @@ export async function POST(request: NextRequest) {
                   // 简化prompt重试
                   const simplePrompt = `请对以下prompt进行评分（0-10分）：
 
-题目要求：${question}
+                    题目要求：${question}
 
-用户prompt：${userPrompt}
+                    用户prompt：${userPrompt}
 
-请返回JSON格式：{"评分": 分数, "反馈": "反馈内容", "优化意见": "优化建议"}`;
+                    请返回JSON格式：{"评分": 分数, "反馈": "反馈内容", "优化意见": "优化建议"}`;
                   
                   const retryResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
                     method: 'POST',
