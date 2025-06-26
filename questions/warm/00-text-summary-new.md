@@ -85,6 +85,7 @@ expectedOutput: |
   4. 存在隐私和偏见问题
   5. 潜力巨大需妥善应对
 solutionDiscussion: "https://github.com/erweixin/prompt-challenges/discussions/1"
+description: "在信息爆炸的时代，我们经常需要快速理解文章的核心内容。这个挑战要求你编写一个提示词，使 AI 能够将任何长文本准确地总结为 3-5 个关键点，每个关键点不超过 15 个字。"
 ---
 
 # 文本摘要

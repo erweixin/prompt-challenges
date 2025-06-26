@@ -47,6 +47,7 @@ export interface ChallengeMetadata {
   promptTemplate?: string;
   expectedOutput?: string;
   solutionDiscussion?: string;
+  description?: string;
 }
 
 export interface ParsedChallenge {

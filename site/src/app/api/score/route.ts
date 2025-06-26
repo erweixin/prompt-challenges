@@ -210,7 +210,7 @@ ${tc.llmResult}
 export async function POST(request: NextRequest) {
   try {
     const body: ScoreRequest = await request.json();
-    const { userPrompt, question, inputText, llmResult, testCases = [], difficulty = 'medium' } = body;
+    const { userPrompt, question, testCases = [], difficulty = 'medium' } = body;
 
     if (!OPENROUTER_API_KEY) {
       return NextResponse.json(
@@ -227,11 +227,7 @@ export async function POST(request: NextRequest) {
     // }
 
     // 构建测试用例数组
-    const allTestCases = testCases.length > 0 ? testCases : [{
-      inputText,
-      llmResult,
-      description: '默认测试用例'
-    }];
+    const allTestCases = testCases;
 
     // 构建增强的评分prompt
     const scoringPrompt = buildEnhancedScoringPrompt(userPrompt, question, allTestCases, difficulty);

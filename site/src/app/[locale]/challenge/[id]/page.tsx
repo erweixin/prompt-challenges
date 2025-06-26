@@ -73,11 +73,12 @@ export default async function ChallengePage(props: ChallengePageProps) {
 
   // 使用新解析器获取结构化挑战数据
   const parsed = ChallengeLoader.load(content);
-  const testCase = parsed.metadata.testCases[0];
+  // const testCase = parsed.metadata.testCases[0];
   const allTestCases = parsed.metadata.testCases;
   const questionRequirements = parsed.content; // 直接用Markdown主体
   const difficulty = parsed.metadata.difficulty;
-  
+  const description = parsed.metadata.description;
+  const promptTemplate = parsed.metadata.promptTemplate;
   return (
     <div className="bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10">
       {/* 顶部导航栏 - 减小高度和内边距 */}
@@ -228,12 +229,14 @@ export default async function ChallengePage(props: ChallengePageProps) {
             <div className="flex-1 overflow-y-auto">
               <div className="p-4 sm:p-6 lg:p-8">
                 <PromptScorer 
-                  question={questionRequirements}
-                  inputText={testCase.inputText}
-                  llmResult={testCase.llmResult}
+                  // question={questionRequirements}
+                  // inputText={testCase.inputText}
+                  // llmResult={testCase.llmResult}
                   testCases={allTestCases}
                   difficulty={difficulty}
                   locale={locale}
+                  description={description}
+                  promptTemplate={promptTemplate}
                 />
               </div>
             </div>

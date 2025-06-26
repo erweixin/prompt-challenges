@@ -31,21 +31,25 @@ interface DetailedScore {
 }
 
 interface PromptScorerProps {
-  question: string;
-  inputText: string;
-  llmResult: string;
+  // question: string;
+  // inputText: string;
+  // llmResult: string;
   testCases?: TestCase[];
   difficulty?: string;
   locale: string;
+  description?: string;
+  promptTemplate?: string;
 }
 
 export default function PromptScorer({ 
-  question, 
-  inputText, 
-  llmResult, 
+  // question, 
+  // inputText, 
+  // llmResult, 
   testCases = [], 
+  promptTemplate,
   difficulty = 'medium',
-  locale 
+  locale,
+  description
 }: PromptScorerProps) {
   const [prompt, setPrompt] = useState('');
   const [score, setScore] = useState<number | null>(null);
@@ -115,11 +119,13 @@ export default function PromptScorer({
         },
         body: JSON.stringify({
           userPrompt: prompt,
-          question,
-          inputText,
-          llmResult,
+          question: description,
+          promptTemplate,
+          // inputText,
+          // llmResult,
           testCases: testCases.length > 0 ? testCases : undefined,
           difficulty,
+          // description
         }),
       });
       
