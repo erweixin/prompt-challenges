@@ -67,12 +67,18 @@ export default function PromptScorer({
       }
       return null;
     } catch (error) {
+      console.log(error);
       return null;
     }
   };
 
   // 提取评分信息
-  const extractScoreInfo = (parsedData: any) => {
+  const extractScoreInfo = (parsedData: {
+    ['评分']: string,
+    ['反馈']: string,
+    ['详细评分']: DetailedScore,
+    ['优化意见']: string
+  }) => {
     if (typeof parsedData.评分 === 'number') {
       setScore(Math.round(parsedData.评分 * 10));
     }
@@ -188,6 +194,7 @@ export default function PromptScorer({
                   setStreamingContent('');
                 }
               } catch (error) {
+                console.log(error);
                 // 忽略解析错误，继续处理
               }
             }

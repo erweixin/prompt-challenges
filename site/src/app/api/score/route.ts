@@ -45,37 +45,37 @@ interface ScoreResponse {
 }
 
 // 简单的评分缓存（生产环境建议使用Redis）
-const scoreCache = new Map<string, { score: ScoreResponse; timestamp: number }>();
-const CACHE_DURATION = 30 * 60 * 1000; // 30分钟
+// const scoreCache = new Map<string, { score: ScoreResponse; timestamp: number }>();
+// const CACHE_DURATION = 30 * 60 * 1000; // 30分钟
 
 // 生成prompt的哈希值用于缓存
-function generatePromptHash(userPrompt: string, question: string): string {
-  return btoa(`${userPrompt}:${question}`).slice(0, 32);
-}
+// function generatePromptHash(userPrompt: string, question: string): string {
+//   return btoa(`${userPrompt}:${question}`).slice(0, 32);
+// }
 
-// 检查缓存
-function getCachedScore(hash: string): ScoreResponse | null {
-  const cached = scoreCache.get(hash);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.score;
-  }
-  return null;
-}
+// // 检查缓存
+// function getCachedScore(hash: string): ScoreResponse | null {
+//   const cached = scoreCache.get(hash);
+//   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+//     return cached.score;
+//   }
+//   return null;
+// }
 
 // 保存到缓存
-function cacheScore(hash: string, score: ScoreResponse): void {
-  scoreCache.set(hash, { score, timestamp: Date.now() });
+// function cacheScore(hash: string, score: ScoreResponse): void {
+//   scoreCache.set(hash, { score, timestamp: Date.now() });
   
-  // 清理过期缓存
-  if (scoreCache.size > 100) {
-    const now = Date.now();
-    for (const [key, value] of scoreCache.entries()) {
-      if (now - value.timestamp > CACHE_DURATION) {
-        scoreCache.delete(key);
-      }
-    }
-  }
-}
+//   // 清理过期缓存
+//   if (scoreCache.size > 100) {
+//     const now = Date.now();
+//     for (const [key, value] of scoreCache.entries()) {
+//       if (now - value.timestamp > CACHE_DURATION) {
+//         scoreCache.delete(key);
+//       }
+//     }
+//   }
+// }
 
 // 构建增强的评分prompt
 function buildEnhancedScoringPrompt(
@@ -293,7 +293,7 @@ export async function POST(request: NextRequest) {
                   // 验证评分结果
                   if (typeof scoreResult.评分 === 'number' && scoreResult.评分 >= 0 && scoreResult.评分 <= 10) {
                     // 缓存结果
-                    cacheScore(promptHash, scoreResult);
+                    // cacheScore(promptHash, scoreResult);
                     controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'complete', data: scoreResult })}\n\n`));
                   } else {
                     throw new Error('Invalid score value');
@@ -341,7 +341,7 @@ export async function POST(request: NextRequest) {
                       if (retryMatch) {
                         const retryResult = JSON.parse(retryMatch[0]);
                         if (typeof retryResult.评分 === 'number') {
-                          cacheScore(promptHash, retryResult);
+                          // cacheScore(promptHash, retryResult);
                           controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'complete', data: retryResult })}\n\n`));
                           break;
                         }
@@ -356,7 +356,7 @@ export async function POST(request: NextRequest) {
                   反馈: 'AI 评分系统暂时无法解析结果，请稍后重试。',
                   优化意见: '建议检查 prompt 的完整性和清晰度。'
                 };
-                cacheScore(promptHash, fallbackResult);
+                // cacheScore(promptHash, fallbackResult);
                 controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'complete', data: fallbackResult })}\n\n`));
               }
               break;
