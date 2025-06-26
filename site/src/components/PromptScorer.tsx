@@ -3,28 +3,101 @@
 import { useState } from 'react';
 import { getDictionary } from '../utils/i18n';
 
+interface TestCase {
+  inputText: string;
+  llmResult: string;
+  description?: string;
+}
+
+interface TestResult {
+  testCaseIndex: number;
+  inputText: string;
+  expectedOutput: string;
+  score: number;
+  feedback: string;
+}
+
+interface DetailedScore {
+  总分: number;
+  清晰度: number;
+  完整性: number;
+  可操作性: number;
+  适应性: number;
+  创新性: number;
+  反馈: string;
+  优化建议: string[];
+  测试结果: TestResult[];
+  详细分析: string;
+}
+
 interface PromptScorerProps {
   question: string;
   inputText: string;
   llmResult: string;
+  testCases?: TestCase[];
+  difficulty?: string;
   locale: string;
 }
 
-export default function PromptScorer({ question, inputText, llmResult, locale }: PromptScorerProps) {
+export default function PromptScorer({ 
+  question, 
+  inputText, 
+  llmResult, 
+  testCases = [], 
+  difficulty = 'medium',
+  locale 
+}: PromptScorerProps) {
   const [prompt, setPrompt] = useState('');
   const [score, setScore] = useState<number | null>(null);
+  const [detailedScore, setDetailedScore] = useState<DetailedScore | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [streamingContent, setStreamingContent] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [analysis, setAnalysis] = useState<Record<string, number> | null>(null);
   const dict = getDictionary(locale);
+
+  // 智能JSON解析函数
+  const tryParseJSON = (content: string) => {
+    try {
+      // 尝试找到完整的JSON对象
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  // 提取评分信息
+  const extractScoreInfo = (parsedData: any) => {
+    if (typeof parsedData.评分 === 'number') {
+      setScore(Math.round(parsedData.评分 * 10));
+    }
+    
+    if (parsedData.反馈) {
+      setFeedback(parsedData.反馈);
+    }
+    
+    if (parsedData.详细评分) {
+      setDetailedScore(parsedData.详细评分);
+    }
+    
+    if (parsedData.优化意见) {
+      setSuggestions([parsedData.优化意见]);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!prompt.trim()) return;
     
     setIsLoading(true);
     setScore(null);
+    setDetailedScore(null);
     setFeedback('');
+    setStreamingContent('');
     setSuggestions([]);
     setAnalysis(null);
     
@@ -39,6 +112,8 @@ export default function PromptScorer({ question, inputText, llmResult, locale }:
           question,
           inputText,
           llmResult,
+          testCases: testCases.length > 0 ? testCases : undefined,
+          difficulty,
         }),
       });
       
@@ -55,42 +130,28 @@ export default function PromptScorer({ question, inputText, llmResult, locale }:
       }
 
       let fullResponse = '';
-      let partialFeedback = '';
+      let hasParsedJSON = false;
       
       try {
         while (true) {
           const { done, value } = await reader.read();
           
           if (done) {
-            // 流结束，尝试解析完整结果
-            try {
-              const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                const scoreResult = JSON.parse(jsonMatch[0]);
-                
-                if (typeof scoreResult.评分 === 'number') {
-                  // 将10分制转换为100分制
-                  setScore(Math.round(scoreResult.评分 * 10));
-                  setFeedback(scoreResult.反馈 || '');
-                  
-                  // 处理优化意见
-                  if (scoreResult.优化意见) {
-                    setSuggestions([scoreResult.优化意见]);
-                  }
-                } else {
-                  setFeedback('评分结果格式错误');
-                }
+            // 流结束，最终尝试解析
+            if (!hasParsedJSON) {
+              const finalParsed = tryParseJSON(fullResponse);
+              if (finalParsed) {
+                extractScoreInfo(finalParsed);
+                hasParsedJSON = true;
               } else {
-                setFeedback('无法解析评分结果');
+                // 如果无法解析JSON，显示原始内容作为反馈
+                setFeedback(fullResponse || '无法解析评分结果');
               }
-            } catch (parseError) {
-              console.error('Failed to parse final response:', parseError);
-              setFeedback('解析评分结果时出错');
             }
             break;
           }
 
-          // 解码流式数据
+          // 解码并处理流式数据
           const chunk = new TextDecoder().decode(value);
           const lines = chunk.split('\n');
           
@@ -105,25 +166,28 @@ export default function PromptScorer({ question, inputText, llmResult, locale }:
                 if (parsed.type === 'partial' && parsed.content) {
                   // 处理部分内容
                   fullResponse += parsed.content;
-                  partialFeedback += parsed.content;
-                  setFeedback(partialFeedback);
-                } else if (parsed.type === 'complete' && parsed.data) {
-                  // 处理完整结果
-                  const scoreResult = parsed.data;
-                  console.log(scoreResult);
-                  if (typeof scoreResult.评分 === 'number') {
-                    setScore(Math.round(scoreResult.评分 * 10));
-                    setFeedback(scoreResult.反馈 || '');
-                    
-                    if (scoreResult.优化意见) {
-                      setSuggestions([scoreResult.优化意见]);
+                  setStreamingContent(fullResponse);
+                  
+                  // 尝试解析累积的内容
+                  if (!hasParsedJSON) {
+                    const parsedData = tryParseJSON(fullResponse);
+                    if (parsedData) {
+                      extractScoreInfo(parsedData);
+                      hasParsedJSON = true;
+                      // 清除流式内容，显示解析后的结果
+                      setStreamingContent('');
                     }
                   }
+                } else if (parsed.type === 'complete' && parsed.data) {
+                  // 处理完整结果
+                  extractScoreInfo(parsed.data);
+                  hasParsedJSON = true;
+                  setStreamingContent('');
                 } else if (parsed.type === 'error') {
                   setFeedback(parsed.error || '评分过程中出现错误');
+                  setStreamingContent('');
                 }
               } catch (error) {
-                console.error('Failed to parse chunk:', error);
                 // 忽略解析错误，继续处理
               }
             }
@@ -132,6 +196,7 @@ export default function PromptScorer({ question, inputText, llmResult, locale }:
       } catch (streamError) {
         console.error('Stream processing error:', streamError);
         setFeedback('处理流式响应时出错');
+        setStreamingContent('');
       } finally {
         reader.releaseLock();
       }
@@ -165,6 +230,13 @@ export default function PromptScorer({ question, inputText, llmResult, locale }:
     if (score >= 70) return dict.scorer.fair || 'Fair attempt';
     if (score >= 60) return dict.scorer.needsImprovement || 'Needs improvement';
     return dict.scorer.poor || 'Poor';
+  };
+
+  const getDimensionColor = (score: number) => {
+    if (score >= 8) return 'text-green-600 dark:text-green-400';
+    if (score >= 6) return 'text-blue-600 dark:text-blue-400';
+    if (score >= 4) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-red-600 dark:text-red-400';
   };
 
   return (
@@ -222,8 +294,32 @@ export default function PromptScorer({ question, inputText, llmResult, locale }:
       </div>
 
       {/* Results Section - 减小间距 */}
-      {(score !== null || feedback || suggestions.length > 0 || analysis) && (
+      {(score !== null || feedback || suggestions.length > 0 || analysis || detailedScore || streamingContent) && (
         <div className="space-y-3 sm:space-y-4 animate-in slide-in-from-bottom-4 duration-500">
+          {/* Streaming Content Display */}
+          {streamingContent && isLoading && (
+            <div className="bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-900/20 dark:to-purple-900/20 backdrop-blur-xl rounded-lg sm:rounded-xl shadow-lg border border-blue-200/20 dark:border-blue-700/20 p-4 sm:p-6 relative overflow-hidden">
+              <div className="relative">
+                <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
+                  <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+                    {locale === 'zh' ? 'AI 正在分析中...' : 'AI is analyzing...'}
+                  </h4>
+                </div>
+                <div className="prose prose-sm prose-gray dark:prose-invert max-w-none">
+                  <div className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                    {streamingContent}
+                    <span className="inline-block w-2 h-4 bg-blue-500 animate-pulse ml-1"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Score Display - 减小边框和圆角 */}
           {score !== null && (
             <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-lg sm:rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20 p-4 sm:p-6">
@@ -276,9 +372,109 @@ export default function PromptScorer({ question, inputText, llmResult, locale }:
               </div>
             </div>
           )}
+
+          {/* Detailed Score Analysis */}
+          {detailedScore && (
+            <div className="bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/20 dark:to-purple-900/20 backdrop-blur-xl rounded-lg sm:rounded-xl shadow-lg border border-indigo-200/20 dark:border-indigo-700/20 p-4 sm:p-6 relative overflow-hidden">
+              <div className="relative">
+                <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+                  <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
+                    {locale === 'zh' ? '详细评分分析' : 'Detailed Score Analysis'}
+                  </h4>
+                </div>
+                
+                {/* Score Dimensions */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
+                  <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.清晰度)}`}>
+                      {detailedScore.清晰度}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      {locale === 'zh' ? '清晰度' : 'Clarity'}
+                    </div>
+                  </div>
+                  <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.完整性)}`}>
+                      {detailedScore.完整性}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      {locale === 'zh' ? '完整性' : 'Completeness'}
+                    </div>
+                  </div>
+                  <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.可操作性)}`}>
+                      {detailedScore.可操作性}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      {locale === 'zh' ? '可操作性' : 'Operability'}
+                    </div>
+                  </div>
+                  <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.适应性)}`}>
+                      {detailedScore.适应性}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      {locale === 'zh' ? '适应性' : 'Adaptability'}
+                    </div>
+                  </div>
+                  <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.创新性)}`}>
+                      {detailedScore.创新性}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      {locale === 'zh' ? '创新性' : 'Innovation'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detailed Analysis */}
+                {detailedScore.详细分析 && (
+                  <div className="mb-4">
+                    <h5 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2">
+                      {locale === 'zh' ? '详细分析' : 'Detailed Analysis'}
+                    </h5>
+                    <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {detailedScore.详细分析}
+                    </p>
+                  </div>
+                )}
+
+                {/* Test Results */}
+                {detailedScore.测试结果 && detailedScore.测试结果.length > 0 && (
+                  <div>
+                    <h5 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2">
+                      {locale === 'zh' ? '测试用例结果' : 'Test Case Results'}
+                    </h5>
+                    <div className="space-y-2">
+                      {detailedScore.测试结果.map((result, index) => (
+                        <div key={index} className="p-2 bg-white/30 dark:bg-gray-800/30 rounded-md">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                              {locale === 'zh' ? `测试用例 ${result.testCaseIndex + 1}` : `Test Case ${result.testCaseIndex + 1}`}
+                            </span>
+                            <span className={`text-xs sm:text-sm font-bold ${getDimensionColor(result.score * 10)}`}>
+                              {Math.round(result.score * 10)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {result.feedback}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           
           {/* Feedback - 减小边框和圆角 */}
-          {feedback && (
+          {feedback && !streamingContent && (
             <div className="bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-900/20 dark:to-purple-900/20 backdrop-blur-xl rounded-lg sm:rounded-xl shadow-lg border border-blue-200/20 dark:border-blue-700/20 p-4 sm:p-6 relative overflow-hidden">
               <div className="relative">
                 <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">

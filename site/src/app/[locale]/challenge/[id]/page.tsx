@@ -1,5 +1,5 @@
 import { getChallengeById, getChallengeContent, getAdjacentChallenges } from '../../../../utils/challenge-utils';
-import { getFirstTestCase, extractQuestionRequirements } from '../../../../utils/challenge-parser';
+import { getFirstTestCase, extractQuestionRequirements, getAllTestCases, extractDifficulty } from '../../../../utils/challenge-parser';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer';
 import PromptScorer from '../../../../components/PromptScorer';
 import Link from 'next/link';
@@ -73,7 +73,9 @@ export default async function ChallengePage(props: ChallengePageProps) {
 
   // 使用解析工具获取测试数据
   const testCase = getFirstTestCase(content);
+  const allTestCases = getAllTestCases(content);
   const questionRequirements = extractQuestionRequirements(content);
+  const difficulty = extractDifficulty(content);
   
   return (
     <div className="bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10">
@@ -228,6 +230,8 @@ export default async function ChallengePage(props: ChallengePageProps) {
                   question={questionRequirements}
                   inputText={testCase.inputText}
                   llmResult={testCase.llmResult}
+                  testCases={allTestCases}
+                  difficulty={difficulty}
                   locale={locale}
                 />
               </div>
