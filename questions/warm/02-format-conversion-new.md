@@ -226,9 +226,6 @@ scoringCriteria:
     passCriteria: "包含适当的缩进、换行和对齐，增强可读性"
 promptTemplate: |
   [你的提示词]
-
-  源格式: {源格式}
-  目标格式: {目标格式}
   内容: 
   {内容}
 expectedOutput: |
@@ -267,8 +264,6 @@ solutionDiscussion: "https://github.com/erweixin/prompt-challenges/discussions/3
 ```
 [你的提示词]
 
-源格式: {源格式}
-目标格式: {目标格式}
 内容: 
 {内容}
 ```
