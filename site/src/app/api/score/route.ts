@@ -17,27 +17,6 @@ interface ScoreRequest {
   promptTemplate?: string;
 }
 
-interface TestResult {
-  testCaseIndex: number;
-  inputText: string;
-  expectedOutput: string;
-  score: number;
-  feedback: string;
-}
-
-interface DetailedScore {
-  总分: number;
-  清晰度: number;      // 0-10
-  完整性: number;      // 0-10  
-  可操作性: number;    // 0-10
-  适应性: number;      // 0-10
-  创新性: number;      // 0-10
-  反馈: string;
-  优化建议: string[];
-  测试结果: TestResult[];
-  详细分析: string;
-}
-
 interface TestCaseResult {
   testCaseIndex: number;
   inputText: string;
@@ -48,6 +27,23 @@ interface TestCaseResult {
   status: 'pass' | 'fail' | 'partial';
 }
 
+interface DetailedScore {
+  总分: number;
+  清晰度: number;
+  完整性: number;
+  可操作性: number;
+  适应性: number;
+  创新性: number;
+  反馈: string;
+  优化建议: string[];
+  测试结果: Array<{
+    testCaseIndex: number;
+    score: number;
+    feedback: string;
+  }>;
+  详细分析: string;
+}
+
 interface ScoreResponse {
   评分: number;
   反馈: string;
@@ -56,199 +52,119 @@ interface ScoreResponse {
   测试用例结果?: TestCaseResult[];
 }
 
-// 简单的评分缓存（生产环境建议使用Redis）
-// const scoreCache = new Map<string, { score: ScoreResponse; timestamp: number }>();
-// const CACHE_DURATION = 30 * 60 * 1000; // 30分钟
-
-// 生成prompt的哈希值用于缓存
-// function generatePromptHash(userPrompt: string, question: string): string {
-//   return btoa(`${userPrompt}:${question}`).slice(0, 32);
-// }
-
-// // 检查缓存
-// function getCachedScore(hash: string): ScoreResponse | null {
-//   const cached = scoreCache.get(hash);
-//   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-//     return cached.score;
-//   }
-//   return null;
-// }
-
-// 保存到缓存
-// function cacheScore(hash: string, score: ScoreResponse): void {
-//   scoreCache.set(hash, { score, timestamp: Date.now() });
-  
-//   // 清理过期缓存
-//   if (scoreCache.size > 100) {
-//     const now = Date.now();
-//     for (const [key, value] of scoreCache.entries()) {
-//       if (now - value.timestamp > CACHE_DURATION) {
-//         scoreCache.delete(key);
-//       }
-//     }
-//   }
-// }
-
-// 构建增强的评分prompt
-function buildEnhancedScoringPrompt(
+// 简化的评分prompt构建函数
+function buildSimplifiedScoringPrompt(
   userPrompt: string, 
   question: string, 
-  testCases: Array<{inputText: string; llmResult: string; description?: string; expectLlmResult: string; actualOutput: string}>,
+  testCases: Array<{index: number; expectedOutput: string; actualOutput: string}>,
   difficulty: string = 'medium'
 ): string {
-  const difficultyWeights = {
+  const weights = {
     'warm': { clarity: 0.3, completeness: 0.3, operability: 0.2, adaptability: 0.1, innovation: 0.1 },
     'medium': { clarity: 0.25, completeness: 0.25, operability: 0.2, adaptability: 0.2, innovation: 0.1 },
     'hard': { clarity: 0.2, completeness: 0.2, operability: 0.2, adaptability: 0.2, innovation: 0.2 },
     'extreme': { clarity: 0.15, completeness: 0.15, operability: 0.2, adaptability: 0.25, innovation: 0.25 }
-  };
-  
-  const weights = difficultyWeights[difficulty as keyof typeof difficultyWeights] || difficultyWeights.medium;
+  }[difficulty] || { clarity: 0.25, completeness: 0.25, operability: 0.2, adaptability: 0.2, innovation: 0.1 };
 
-  return `你是一个专业的Prompt Engineering评估专家，现在要对用户的prompt进行多维度评估。
+  return `评估用户prompt质量，难度:${difficulty}
 
-## 评分维度说明
+题目: ${question}
+用户prompt: ${userPrompt}
 
-1. **清晰度 (0-10分)**: 指令是否明确、无歧义，模型能否准确理解意图
-   - 9-10分: 指令极其清晰，无任何歧义
-   - 7-8分: 指令清晰，可能有轻微歧义
-   - 5-6分: 指令基本清晰，存在一些歧义
-   - 3-4分: 指令不够清晰，存在明显歧义
-   - 0-2分: 指令模糊，难以理解
+测试用例结果:
+${testCases.map(tc => `用例${tc.index}: 预期"${tc.expectedOutput}" 实际"${tc.actualOutput}"`).join('\n')}
 
-2. **完整性 (0-10分)**: 是否覆盖了题目的所有要求
-   - 9-10分: 完全覆盖所有要求，甚至超出预期
-   - 7-8分: 覆盖大部分要求，遗漏较少
-   - 5-6分: 覆盖基本要求，遗漏较多
-   - 3-4分: 覆盖部分要求，遗漏严重
-   - 0-2分: 几乎未覆盖要求
+评分标准(0-10分):
+- 清晰度: 指令明确无歧义
+- 完整性: 覆盖题目要求
+- 可操作性: 模型能准确执行
+- 适应性: 处理不同输入能力
+- 创新性: 解决方案独特性
 
-3. **可操作性 (0-10分)**: 模型能否准确执行指令
-   - 9-10分: 指令极易执行，结果准确
-   - 7-8分: 指令容易执行，结果较准确
-   - 5-6分: 指令可执行，结果基本准确
-   - 3-4分: 指令执行困难，结果不够准确
-   - 0-2分: 指令难以执行，结果错误
+权重: 清晰度${weights.clarity*100}% 完整性${weights.completeness*100}% 可操作性${weights.operability*100}% 适应性${weights.adaptability*100}% 创新性${weights.innovation*100}%
 
-4. **适应性 (0-10分)**: 对不同输入的适应能力
-   - 9-10分: 极强的适应性，处理各种输入都很优秀
-   - 7-8分: 良好的适应性，处理大部分输入较好
-   - 5-6分: 一般适应性，处理常见输入尚可
-   - 3-4分: 适应性较差，只能处理特定输入
-   - 0-2分: 适应性很差，容易出错
-
-5. **创新性 (0-10分)**: 解决方案的创造性和独特性
-   - 9-10分: 极具创新性，解决方案独特且有效
-   - 7-8分: 较有创新性，解决方案有新意
-   - 5-6分: 有一定创新性，解决方案合理
-   - 3-4分: 创新性不足，解决方案常规
-   - 0-2分: 缺乏创新性，解决方案平庸
-
-## 难度等级权重
-
-当前难度: ${difficulty}
-- 清晰度权重: ${weights.clarity * 100}%
-- 完整性权重: ${weights.completeness * 100}%
-- 可操作性权重: ${weights.operability * 100}%
-- 适应性权重: ${weights.adaptability * 100}%
-- 创新性权重: ${weights.innovation * 100}%
-
-## 题目要求
-
-${question}
-
-## 用户作答的提示词
-
-\`\`\`
-${userPrompt}
-\`\`\`
-
-## 其他要求
- - 完全无关的提示词可以赋 0 分
- - 要求输出尽量简介
-
-## 测试用例评估
-
-${testCases.map((tc, i) => `
-### 测试用例 ${i + 1}${tc.description ? ` - ${tc.description}` : ''}
-**输入文本:**
-\`\`\`
-${tc.inputText}
-\`\`\`
-
-**该测试用例的预期输出结果:**
-\`\`\`
-${tc.expectLlmResult}
-\`\`\`
-
-**该测试用例的实际输出结果:**
-\`\`\`
-${tc.actualOutput}
-\`\`\`
-
-**评估要求:**
-请对比预期输出和实际输出，评估该测试用例的执行情况，给出得分（0-10分）和详细反馈。
-`).join('\n')}
-
-## 评估要求
-
-1. 对每个测试用例进行单独评估，对比预期输出和实际输出，给出该用例的得分（0-10分）和详细反馈
-2. 基于所有测试用例的表现，给出五个维度的评分
-3. 根据难度等级权重计算加权总分
-4. 提供具体的改进建议，帮助用户提升prompt质量
-5. 给出详细的分析说明
-6. 为每个测试用例确定状态：
-   - pass: 实际输出与预期输出高度匹配（得分8-10分）
-   - partial: 实际输出与预期输出部分匹配（得分4-7分）
-   - fail: 实际输出与预期输出不匹配（得分0-3分）
-
-## 输出格式
-
-请严格按照以下JSON格式输出，不要包含任何其他内容：
-
-\`\`\`json
+输出JSON:
 {
   "评分": 加权总分,
-  "反馈": "总体评价和建议",
-  "优化意见": "具体的改进建议",
+  "反馈": "总体评价",
+  "优化意见": "改进建议",
   "详细评分": {
     "总分": 加权总分,
-    "清晰度": 清晰度得分,
-    "完整性": 完整性得分,
-    "可操作性": 可操作性得分,
-    "适应性": 适应性得分,
-    "创新性": 创新性得分,
+    "清晰度": 分数,
+    "完整性": 分数,
+    "可操作性": 分数,
+    "适应性": 分数,
+    "创新性": 分数,
     "反馈": "详细反馈",
-    "优化建议": ["建议1", "建议2", "建议3"],
-    "测试结果": [
-      {
-        "testCaseIndex": 0,
-        "score": 该用例得分,
-        "feedback": "该用例反馈"
-      }
-    ],
-    "详细分析": "详细的分析说明"
-  },
-  "测试用例结果": [
-    {
-      "testCaseIndex": 0,
-      "inputText": "输入文本",
-      "expectedOutput": "预期输出",
-      "actualOutput": "实际输出",
-      "score": 该用例得分,
-      "feedback": "该用例反馈",
-      "status": "pass|fail|partial"
-    }
-  ]
+    "优化建议": ["建议1", "建议2"],
+    "测试结果": [{"testCaseIndex": 0, "score": 分数, "feedback": "反馈"}],
+    "详细分析": "分析说明"
+  }
+}`;
 }
-\`\`\`
 
-注意：
-- 测试用例结果中的testCaseIndex应该从0开始
-- score应该是0-10之间的数字
-- status根据得分确定：8-10分为pass，4-7分为partial，0-3分为fail
-- 确保所有字段名称完全匹配
-`;
+// 处理测试用例执行
+async function executeTestCases(
+  testCases: Array<{inputText: string; llmResult: string; description?: string}>,
+  userPrompt: string,
+  promptTemplate?: string
+): Promise<Array<{index: number; inputText: string; expectedOutput: string; actualOutput: string}>> {
+  const testCasePromises = testCases.map(async (item, index) => {
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [{
+          role: 'user',
+          content: `提示词: ${userPrompt}\n文本: ${item.inputText}${promptTemplate ? `\n${promptTemplate}` : ''}`,
+        }],
+        temperature: 0.1,
+        max_tokens: 2000,
+      }),
+    });
+
+    const data = await response.json();
+    const actualOutput = data.choices[0]?.message?.content || '';
+
+    return {
+      index,
+      inputText: item.inputText,
+      expectedOutput: item.llmResult,
+      actualOutput,
+    };
+  });
+
+  return Promise.all(testCasePromises);
+}
+
+// 组装完整的测试用例结果
+function assembleTestCaseResults(
+  testCaseData: Array<{index: number; inputText: string; expectedOutput: string; actualOutput: string}>,
+  aiTestResults: Array<{testCaseIndex: number; score: number; feedback: string}>
+): TestCaseResult[] {
+  return testCaseData.map((tc, index) => {
+    const aiResult = aiTestResults.find(r => r.testCaseIndex === index) || {
+      testCaseIndex: index,
+      score: 5,
+      feedback: '未评估'
+    };
+
+    const status = aiResult.score >= 8 ? 'pass' : aiResult.score >= 4 ? 'partial' : 'fail';
+
+    return {
+      testCaseIndex: tc.index,
+      inputText: tc.inputText,
+      expectedOutput: tc.expectedOutput,
+      actualOutput: tc.actualOutput,
+      score: aiResult.score,
+      feedback: aiResult.feedback,
+      status,
+    };
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -263,64 +179,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 检查缓存
-    // const promptHash = generatePromptHash(userPrompt, question);
-    // const cachedScore = getCachedScore(promptHash);
-    // if (cachedScore) {
-    //   return NextResponse.json(cachedScore);
-    // }
+    // 执行测试用例
+    const testCaseData = await executeTestCases(testCases, userPrompt, promptTemplate);
 
-    // 构建测试用例数组
-    // const allTestCases = testCases;
+    // 构建简化的评分prompt
+    const simplifiedTestCases = testCaseData.map(tc => ({
+      index: tc.index,
+      expectedOutput: tc.expectedOutput,
+      actualOutput: tc.actualOutput,
+    }));
 
-    const allCase = testCases.map(item => {
-      return new Promise<{
-        inputText: string,
-        llmResult: string,
-        expectLlmResult: string,
-        description: string,
-        actualOutput: string,
-      }>(async res => {
-        const llmResult = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'deepseek-chat',
-            messages: [
-              {
-                role: 'user',
-                content: `变量说明：
-                          - 你的提示词: ${userPrompt}
-                          - 文本内容: ${item.inputText}
-                          ${promptTemplate}`,
-              },
-            ],
-            temperature: 0.1,
-            max_tokens: 2000,
-            // stream: true,
-          }),
-        })
-        const text = await llmResult.text();
-        const target = JSON.parse(text);
-        const actualOutput = target['choices'][0].message['content'];
-        res({
-          llmResult: actualOutput,
-          inputText: item.inputText,
-          expectLlmResult: item.llmResult,
-          description: item.inputText,
-          actualOutput: actualOutput,
-        })
-      })
-    });
+    const scoringPrompt = buildSimplifiedScoringPrompt(userPrompt, question, simplifiedTestCases, difficulty);
 
-    const result = await Promise.all(allCase);
-
-    // 构建增强的评分prompt
-    const scoringPrompt = buildEnhancedScoringPrompt(userPrompt, question, result, difficulty);
-    // 调用 DeepSeek API 进行流式处理
+    // 调用AI进行评分
     const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -329,14 +200,9 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model: 'deepseek-chat',
-        messages: [
-          {
-            role: 'user',
-            content: scoringPrompt,
-          },
-        ],
+        messages: [{ role: 'user', content: scoringPrompt }],
         temperature: 0.1,
-        max_tokens: 2000,
+        max_tokens: 1500,
         stream: true,
       }),
     });
@@ -368,16 +234,20 @@ export async function POST(request: NextRequest) {
             const { done, value } = await reader.read();
             
             if (done) {
-              // 处理完整的响应
               try {
                 const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
                   const scoreResult: ScoreResponse = JSON.parse(jsonMatch[0]);
                   
-                  // 验证评分结果
                   if (typeof scoreResult.评分 === 'number' && scoreResult.评分 >= 0 && scoreResult.评分 <= 10) {
-                    // 缓存结果
-                    // cacheScore(promptHash, scoreResult);
+                    // 组装完整的测试用例结果
+                    if (scoreResult.详细评分?.测试结果) {
+                      scoreResult.测试用例结果 = assembleTestCaseResults(
+                        testCaseData,
+                        scoreResult.详细评分.测试结果
+                      );
+                    }
+
                     controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'complete', data: scoreResult })}\n\n`));
                   } else {
                     throw new Error('Invalid score value');
@@ -388,19 +258,11 @@ export async function POST(request: NextRequest) {
               } catch (parseError) {
                 console.error('Failed to parse AI response:', parseError);
                 
-                // 重试机制
                 if (retryCount < maxRetries) {
                   retryCount++;
                   console.log(`Retrying score generation, attempt ${retryCount}`);
                   
-                  // 简化prompt重试
-                  const simplePrompt = `请对以下prompt进行评分（0-10分）：
-
-                    题目要求：${question}
-
-                    用户prompt：${userPrompt}
-
-                    请返回JSON格式：{"评分": 分数, "反馈": "反馈内容", "优化意见": "优化建议"}`;
+                  const simplePrompt = `评分(0-10): 题目"${question}" 用户prompt"${userPrompt}" 返回JSON: {"评分": 分数, "反馈": "反馈", "优化意见": "建议"}`;
                   
                   const retryResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
                     method: 'POST',
@@ -412,7 +274,7 @@ export async function POST(request: NextRequest) {
                       model: 'deepseek-chat',
                       messages: [{ role: 'user', content: simplePrompt }],
                       temperature: 0.1,
-                      max_tokens: 500,
+                      max_tokens: 300,
                       stream: false,
                     }),
                   });
@@ -425,7 +287,6 @@ export async function POST(request: NextRequest) {
                       if (retryMatch) {
                         const retryResult = JSON.parse(retryMatch[0]);
                         if (typeof retryResult.评分 === 'number') {
-                          // cacheScore(promptHash, retryResult);
                           controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'complete', data: retryResult })}\n\n`));
                           break;
                         }
@@ -434,40 +295,34 @@ export async function POST(request: NextRequest) {
                   }
                 }
                 
-                // 如果重试失败，返回fallback结果
                 const fallbackResult: ScoreResponse = {
                   评分: 5,
                   反馈: 'AI 评分系统暂时无法解析结果，请稍后重试。',
                   优化意见: '建议检查 prompt 的完整性和清晰度。'
                 };
-                // cacheScore(promptHash, fallbackResult);
                 controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'complete', data: fallbackResult })}\n\n`));
               }
               break;
             }
 
-            // 解码并处理流式数据
+            // 处理流式数据
             const chunk = new TextDecoder().decode(value);
             const lines = chunk.split('\n');
             
             for (const line of lines) {
               if (line.startsWith('data: ')) {
                 const data = line.slice(6);
-                if (data === '[DONE]') {
-                  continue;
-                }
+                if (data === '[DONE]') continue;
                 
                 try {
                   const parsed = JSON.parse(data);
                   if (parsed.choices && parsed.choices[0]?.delta?.content) {
                     const content = parsed.choices[0].delta.content;
                     fullResponse += content;
-                    
-                    // 发送部分内容到前端
                     controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'partial', content })}\n\n`));
                   }
                 } catch {
-                  // 忽略解析错误，继续处理
+                  // 忽略解析错误
                 }
               }
             }
