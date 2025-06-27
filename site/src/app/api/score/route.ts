@@ -82,7 +82,7 @@ interface ScoreResponse {
 function buildEnhancedScoringPrompt(
   userPrompt: string, 
   question: string, 
-  testCases: Array<{inputText: string; llmResult: string; description?: string}>,
+  testCases: Array<{inputText: string; llmResult: string; description?: string; expectLlmResult: string}>,
   difficulty: string = 'medium'
 ): string {
   const difficultyWeights = {
@@ -165,6 +165,11 @@ ${testCases.map((tc, i) => `
 ${tc.inputText}
 \`\`\`
 
+**该测试用例的预期输出结果:**
+\`\`\`
+${tc.expectLlmResult}
+\`\`\`
+
 **该测试用例的输出结果:**
 \`\`\`
 ${tc.llmResult}
@@ -236,6 +241,7 @@ export async function POST(request: NextRequest) {
       return new Promise<{
         inputText: string,
         llmResult: string,
+        expectLlmResult: string,
         description: string,
       }>(async res => {
         const llmResult = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
@@ -265,6 +271,7 @@ export async function POST(request: NextRequest) {
         res({
           llmResult: target['choices'][0].message['content'],
           inputText: item.inputText,
+          expectLlmResult: item.llmResult,
           description: item.inputText
         })
       })
