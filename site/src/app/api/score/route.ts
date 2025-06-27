@@ -38,11 +38,22 @@ interface DetailedScore {
   详细分析: string;
 }
 
+interface TestCaseResult {
+  testCaseIndex: number;
+  inputText: string;
+  expectedOutput: string;
+  actualOutput: string;
+  score: number;
+  feedback: string;
+  status: 'pass' | 'fail' | 'partial';
+}
+
 interface ScoreResponse {
   评分: number;
   反馈: string;
   优化意见: string;
   详细评分?: DetailedScore;
+  测试用例结果?: TestCaseResult[];
 }
 
 // 简单的评分缓存（生产环境建议使用Redis）
@@ -82,7 +93,7 @@ interface ScoreResponse {
 function buildEnhancedScoringPrompt(
   userPrompt: string, 
   question: string, 
-  testCases: Array<{inputText: string; llmResult: string; description?: string; expectLlmResult: string}>,
+  testCases: Array<{inputText: string; llmResult: string; description?: string; expectLlmResult: string; actualOutput: string}>,
   difficulty: string = 'medium'
 ): string {
   const difficultyWeights = {
@@ -170,19 +181,26 @@ ${tc.inputText}
 ${tc.expectLlmResult}
 \`\`\`
 
-**该测试用例的输出结果:**
+**该测试用例的实际输出结果:**
 \`\`\`
-${tc.llmResult}
+${tc.actualOutput}
 \`\`\`
+
+**评估要求:**
+请对比预期输出和实际输出，评估该测试用例的执行情况，给出得分（0-10分）和详细反馈。
 `).join('\n')}
 
 ## 评估要求
 
-1. 对每个测试用例进行单独评估，给出该用例的得分和反馈
+1. 对每个测试用例进行单独评估，对比预期输出和实际输出，给出该用例的得分（0-10分）和详细反馈
 2. 基于所有测试用例的表现，给出五个维度的评分
 3. 根据难度等级权重计算加权总分
 4. 提供具体的改进建议，帮助用户提升prompt质量
 5. 给出详细的分析说明
+6. 为每个测试用例确定状态：
+   - pass: 实际输出与预期输出高度匹配（得分8-10分）
+   - partial: 实际输出与预期输出部分匹配（得分4-7分）
+   - fail: 实际输出与预期输出不匹配（得分0-3分）
 
 ## 输出格式
 
@@ -210,9 +228,27 @@ ${tc.llmResult}
       }
     ],
     "详细分析": "详细的分析说明"
-  }
+  },
+  "测试用例结果": [
+    {
+      "testCaseIndex": 0,
+      "inputText": "输入文本",
+      "expectedOutput": "预期输出",
+      "actualOutput": "实际输出",
+      "score": 该用例得分,
+      "feedback": "该用例反馈",
+      "status": "pass|fail|partial"
+    }
+  ]
 }
-\`\`\``;
+\`\`\`
+
+注意：
+- 测试用例结果中的testCaseIndex应该从0开始
+- score应该是0-10之间的数字
+- status根据得分确定：8-10分为pass，4-7分为partial，0-3分为fail
+- 确保所有字段名称完全匹配
+`;
 }
 
 export async function POST(request: NextRequest) {
@@ -243,6 +279,7 @@ export async function POST(request: NextRequest) {
         llmResult: string,
         expectLlmResult: string,
         description: string,
+        actualOutput: string,
       }>(async res => {
         const llmResult = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
           method: 'POST',
@@ -268,11 +305,13 @@ export async function POST(request: NextRequest) {
         })
         const text = await llmResult.text();
         const target = JSON.parse(text);
+        const actualOutput = target['choices'][0].message['content'];
         res({
-          llmResult: target['choices'][0].message['content'],
+          llmResult: actualOutput,
           inputText: item.inputText,
           expectLlmResult: item.llmResult,
-          description: item.inputText
+          description: item.inputText,
+          actualOutput: actualOutput,
         })
       })
     });

@@ -96,7 +96,6 @@ promptTemplate: |
   [你的提示词]
 
   文本: {文本内容}
-  分类类别: {类别列表}
 expectedOutput: |
   分类结果:
   - 类别: 科技
@@ -132,7 +131,6 @@ solutionDiscussion: "https://github.com/erweixin/prompt-challenges/discussions/1
 [你的提示词]
 
 文本: {文本内容}
-分类类别: {类别列表}
 ```
 
 ## 自动测试流程

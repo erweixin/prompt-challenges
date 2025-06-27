@@ -2,11 +2,22 @@
 
 import { useState } from 'react';
 import { getDictionary } from '../utils/i18n';
+import TestCaseResults from './TestCaseResults';
 
 interface TestCase {
   inputText: string;
   llmResult: string;
   description?: string;
+}
+
+interface TestCaseResult {
+  testCaseIndex: number;
+  inputText: string;
+  expectedOutput: string;
+  actualOutput: string;
+  score: number;
+  feedback: string;
+  status: 'pass' | 'fail' | 'partial';
 }
 
 interface TestResult {
@@ -59,6 +70,7 @@ export default function PromptScorer({
   const [streamingContent, setStreamingContent] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [analysis, setAnalysis] = useState<Record<string, number> | null>(null);
+  const [testCaseResults, setTestCaseResults] = useState<TestCaseResult[]>([]);
   const dict = getDictionary(locale);
 
   // 智能JSON解析函数
@@ -81,7 +93,8 @@ export default function PromptScorer({
     ['评分']: string,
     ['反馈']: string,
     ['详细评分']: DetailedScore,
-    ['优化意见']: string
+    ['优化意见']: string,
+    ['测试用例结果']?: TestCaseResult[]
   }) => {
     if (typeof parsedData.评分 === 'number') {
       setScore(Math.round(parsedData.评分 * 10));
@@ -98,6 +111,10 @@ export default function PromptScorer({
     if (parsedData.优化意见) {
       setSuggestions([parsedData.优化意见]);
     }
+
+    if (parsedData.测试用例结果) {
+      setTestCaseResults(parsedData.测试用例结果);
+    }
   };
 
   const handleSubmit = async () => {
@@ -110,6 +127,7 @@ export default function PromptScorer({
     setStreamingContent('');
     setSuggestions([]);
     setAnalysis(null);
+    setTestCaseResults([]);
     
     try {
       const response = await fetch('/api/score', {
@@ -256,7 +274,7 @@ export default function PromptScorer({
     <div className="space-y-4 sm:space-y-6">
       {/* Input Section - 减小间距 */}
       <div className="space-y-3 sm:space-y-4">
-        <div className="flex items-center space-x-2 sm:space-x-3">
+        {/* <div className="flex items-center space-x-2 sm:space-x-3">
           <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg">
             <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -270,7 +288,7 @@ export default function PromptScorer({
               {dict.scorer.enterPrompt || 'Enter your AI prompt below'}
             </p>
           </div>
-        </div>
+        </div> */}
         
         <div className="relative">
           <textarea
@@ -484,6 +502,11 @@ export default function PromptScorer({
                 )}
               </div>
             </div>
+          )}
+          
+          {/* Test Case Results */}
+          {testCaseResults.length > 0 && (
+            <TestCaseResults testCases={testCaseResults} locale={locale} />
           )}
           
           {/* Feedback - 减小边框和圆角 */}

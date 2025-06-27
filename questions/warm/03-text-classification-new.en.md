@@ -96,7 +96,6 @@ promptTemplate: |
   [Your Prompt]
 
   Text: {Text Content}
-  Categories: {Category List}
 expectedOutput: |
   Classification Result:
   - Category: Technology
@@ -133,7 +132,6 @@ Write a prompt that enables AI to:
 [Your Prompt]
 
 Text: {Text Content}
-Categories: {Category List}
 
 ```
 

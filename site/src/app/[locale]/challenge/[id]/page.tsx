@@ -121,11 +121,11 @@ export default async function ChallengePage(props: ChallengePageProps) {
 
       {/* 主要内容区域 - 减小内边距和间距 */}
       <div className="mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 h-[calc(100vh-200px)] sm:h-[calc(100vh-250px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 h-[calc(100vh-180px)] sm:h-[calc(100vh-230px)]">
           {/* 左侧：题目内容 - 减小边框和圆角 */}
           <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-lg sm:rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20 overflow-hidden flex flex-col">
             {/* 题目头部 - 减小内边距 */}
-            <div className={`p-4 sm:p-6 lg:p-8 border-b border-gray-200/50 dark:border-gray-700/50 ${config.bg} relative overflow-hidden`}>
+            <div className={`p-2 sm:p-2 lg:p-4 border-b border-gray-200/50 dark:border-gray-700/50 ${config.bg} relative overflow-hidden`}>
               {/* 简化背景装饰 */}
               <div className={`absolute top-0 right-0 w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 bg-gradient-to-br ${config.gradient} opacity-10 rounded-full -translate-y-10 translate-x-10`}></div>
               
@@ -150,7 +150,7 @@ export default async function ChallengePage(props: ChallengePageProps) {
             </div>
             
             {/* 题目内容 - 减小内边距 */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div className="flex-1 overflow-y-auto p-2 sm:p-2 lg:p-4">
               <div className="prose prose-gray dark:prose-invert max-w-none prose-sm sm:prose-base">
                 <div className="space-y-4 sm:space-y-6">
                   <MarkdownRenderer content={questionRequirements} />
@@ -199,7 +199,7 @@ export default async function ChallengePage(props: ChallengePageProps) {
           {/* 右侧：输入和评分 - 减小边框和圆角 */}
           <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-lg sm:rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20 overflow-hidden flex flex-col">
             {/* 右侧头部 - 减小内边距 */}
-            <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-900/20 dark:to-purple-900/20 relative overflow-hidden">
+            <div className="p-2 sm:p-2 lg:p-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-900/20 dark:to-purple-900/20 relative overflow-hidden">
               {/* 简化背景装饰 */}
               <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-400 to-purple-400 opacity-10 rounded-full -translate-y-8 translate-x-8"></div>
               
@@ -227,7 +227,7 @@ export default async function ChallengePage(props: ChallengePageProps) {
             
             {/* 评分组件 - 减小内边距 */}
             <div className="flex-1 overflow-y-auto">
-              <div className="p-4 sm:p-6 lg:p-8">
+              <div className="p-2 sm:p-2 lg:p-4">
                 <PromptScorer 
                   // question={questionRequirements}
                   // inputText={testCase.inputText}
@@ -242,9 +242,9 @@ export default async function ChallengePage(props: ChallengePageProps) {
             </div>
             
             {/* 右侧底部 - 减小内边距 */}
-            <div className="p-3 sm:p-4 lg:p-6 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50/50 to-gray-100/50 dark:from-gray-700/30 dark:to-gray-800/30">
+            <div className="p-1 sm:p-2 lg:p-2 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50/50 to-gray-100/50 dark:from-gray-700/30 dark:to-gray-800/30">
               <div className="text-center">
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-3">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-1 sm:mb-1">
                   {isEnglish ? "Need help? Join our community" : "需要帮助？加入我们的社区"}
                 </p>
                 <a 

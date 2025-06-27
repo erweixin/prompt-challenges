@@ -74,7 +74,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           <LocaleSwitcher />
         </div>
       </header>
-      <main className="flex-grow container mx-auto px-4 py-4">
+      <main className="flex-grow container mx-auto p-0">
         {children}
       </main>
       <footer className="border-t border-gray-200 dark:border-gray-800">
