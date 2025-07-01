@@ -16,7 +16,7 @@ export default async function HomePage({ params }: HomePageProps) {
   const isEnglish = locale === 'en';
   
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen p-4">
       {/* Hero Section */}
       <div className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-20 overflow-hidden">
         {/* Background decorations */}

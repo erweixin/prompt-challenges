@@ -8,6 +8,13 @@ export interface Challenge {
   description: string;
   descriptionEn?: string;
   difficulty: DifficultyLevel;
+  tags: string[];
+  requirements: string[];
+  testCases: TestCase[];
+  scoringCriteria: ScoringCriterion[];
+  promptTemplate?: string;
+  expectedOutput?: string;
+  solutionDiscussion?: string;
 }
 
 export interface ChallengeGroup {
@@ -15,4 +22,35 @@ export interface ChallengeGroup {
   label: string;
   emoji: string;
   challenges: Challenge[];
+}
+
+export interface TestCase {
+  description: string;
+  inputText: string;
+  llmResult: string;
+}
+
+export interface ScoringCriterion {
+  name: string;
+  weight: number;
+  description: string;
+  evaluationMethod?: string;
+  passCriteria?: string;
+}
+
+export interface ChallengeMetadata {
+  title: string;
+  difficulty: 'warm' | 'medium' | 'hard' | 'extreme';
+  tags: string[];
+  testCases: TestCase[];
+  scoringCriteria: ScoringCriterion[];
+  promptTemplate?: string;
+  expectedOutput?: string;
+  solutionDiscussion?: string;
+  description?: string;
+}
+
+export interface ParsedChallenge {
+  metadata: ChallengeMetadata;
+  content: string;
 } 
