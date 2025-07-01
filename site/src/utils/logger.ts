@@ -12,6 +12,7 @@ interface LogContext {
   model?: string;
   retryCount?: number;
   memoryUsage?: Record<string, number>;
+  locale?: string;
 }
 
 interface LogEntry {
