@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger, generateRequestId } from '@/utils/logger';
+import { performanceMonitor, getMemoryUsage } from '@/utils/performance';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_BASE_URL = 'https://api.deepseek.com/v1';
@@ -107,35 +109,67 @@ ${testCases.map(tc => `用例${tc.index}: 预期"${tc.expectedOutput}" 实际"${
 async function executeTestCases(
   testCases: Array<{inputText: string; llmResult: string; description?: string}>,
   userPrompt: string,
-  promptTemplate?: string
+  promptTemplate?: string,
+  requestId?: string
 ): Promise<Array<{index: number; inputText: string; expectedOutput: string; actualOutput: string}>> {
   const testCasePromises = testCases.map(async (item, index) => {
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [{
-          role: 'user',
-          content: `提示词: ${userPrompt}\n文本: ${item.inputText}${promptTemplate ? `\n${promptTemplate}` : ''}`,
-        }],
-        temperature: 0.1,
-        max_tokens: 2000,
-      }),
-    });
+    const testCaseStartTime = performance.now();
+    
+    try {
+      const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [{
+            role: 'user',
+            content: `提示词: ${userPrompt}\n文本: ${item.inputText}${promptTemplate ? `\n${promptTemplate}` : ''}`,
+          }],
+          temperature: 0.1,
+          max_tokens: 2000,
+        }),
+      });
 
-    const data = await response.json();
-    const actualOutput = data.choices[0]?.message?.content || '';
+      const data = await response.json();
+      const actualOutput = data.choices[0]?.message?.content || '';
+      const testCaseDuration = performance.now() - testCaseStartTime;
+      
+      const success = response.ok && actualOutput;
+      logger.testCaseExecution(
+        requestId || 'unknown',
+        index,
+        success,
+        testCaseDuration,
+        { model: 'deepseek-chat' }
+      );
 
-    return {
-      index,
-      inputText: item.inputText,
-      expectedOutput: item.llmResult,
-      actualOutput,
-    };
+      return {
+        index,
+        inputText: item.inputText,
+        expectedOutput: item.llmResult,
+        actualOutput,
+      };
+    } catch (error) {
+      const testCaseDuration = performance.now() - testCaseStartTime;
+      logger.testCaseExecution(
+        requestId || 'unknown',
+        index,
+        false,
+        testCaseDuration,
+        { model: 'deepseek-chat' }
+      );
+      logger.error(`Test case ${index} execution failed`, { requestId }, error as Error);
+      
+      return {
+        index,
+        inputText: item.inputText,
+        expectedOutput: item.llmResult,
+        actualOutput: '',
+      };
+    }
   });
 
   return Promise.all(testCasePromises);
@@ -168,11 +202,37 @@ function assembleTestCaseResults(
 }
 
 export async function POST(request: NextRequest) {
+  const requestId = generateRequestId();
+  const startTime = performance.now();
+  
+  // 获取请求信息
+  const userAgent = request.headers.get('user-agent') || 'unknown';
+  const ip = request.headers.get('x-forwarded-for') || 
+             request.headers.get('x-real-ip') || 
+             'unknown';
+  
+  // 记录请求开始
+  logger.apiRequest(requestId, 'POST', '/api/score', {
+    userAgent,
+    ip,
+    testCaseCount: 0 // 稍后更新
+  });
+
   try {
     const body: ScoreRequest = await request.json();
     const { userPrompt, question, testCases = [], promptTemplate, difficulty = 'medium' } = body;
 
+    // 更新测试用例数量
+    logger.info('Request body parsed', { 
+      requestId, 
+      testCaseCount: testCases.length,
+      difficulty,
+      userPromptLength: userPrompt.length,
+      questionLength: question.length
+    });
+
     if (!OPENROUTER_API_KEY) {
+      logger.error('OpenRouter API key not configured', { requestId });
       return NextResponse.json(
         { error: 'OpenRouter API key not configured' },
         { status: 500 }
@@ -180,7 +240,23 @@ export async function POST(request: NextRequest) {
     }
 
     // 执行测试用例
-    const testCaseData = await executeTestCases(testCases, userPrompt, promptTemplate);
+    logger.info('Starting test case execution', { 
+      requestId, 
+      testCaseCount: testCases.length 
+    });
+    
+    const testCaseData = await performanceMonitor.measureAsync(
+      'executeTestCases',
+      () => executeTestCases(testCases, userPrompt, promptTemplate, requestId),
+      { requestId, testCaseCount: testCases.length }
+    );
+    
+    const testCaseMetric = performanceMonitor.getMetric('executeTestCases');
+    logger.info('Test case execution completed', { 
+      requestId, 
+      duration: testCaseMetric?.duration,
+      testCaseCount: testCases.length
+    });
 
     // 构建简化的评分prompt
     const simplifiedTestCases = testCaseData.map(tc => ({
@@ -191,7 +267,14 @@ export async function POST(request: NextRequest) {
 
     const scoringPrompt = buildSimplifiedScoringPrompt(userPrompt, question, simplifiedTestCases, difficulty);
 
+    logger.info('Starting AI scoring', { 
+      requestId, 
+      difficulty,
+      promptLength: scoringPrompt.length
+    });
+
     // 调用AI进行评分
+    const aiScoringStartTime = performance.now();
     const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -207,14 +290,19 @@ export async function POST(request: NextRequest) {
       }),
     });
 
+    const aiScoringDuration = performance.now() - aiScoringStartTime;
+    
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('DeepSeek API error:', errorData);
+      logger.aiModelCall(requestId, 'deepseek-chat', aiScoringDuration, false, { difficulty });
+      logger.error('DeepSeek API error', { requestId }, new Error(errorData));
       return NextResponse.json(
         { error: 'Failed to get score from AI model' },
         { status: 500 }
       );
     }
+    
+    logger.aiModelCall(requestId, 'deepseek-chat', aiScoringDuration, true, { difficulty });
 
     // 创建流式响应
     const stream = new ReadableStream({
@@ -248,6 +336,11 @@ export async function POST(request: NextRequest) {
                       );
                     }
 
+                    // 记录评分结果
+                    logger.scoringResult(requestId, scoreResult.评分, difficulty, {
+                      testCaseCount: testCases.length
+                    });
+
                     controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'complete', data: scoreResult })}\n\n`));
                   } else {
                     throw new Error('Invalid score value');
@@ -260,7 +353,11 @@ export async function POST(request: NextRequest) {
                 
                 if (retryCount < maxRetries) {
                   retryCount++;
-                  console.log(`Retrying score generation, attempt ${retryCount}`);
+                  logger.warn(`Retrying score generation, attempt ${retryCount}`, { 
+                    requestId, 
+                    retryCount,
+                    difficulty
+                  });
                   
                   const simplePrompt = `评分(0-10): 题目"${question}" 用户prompt"${userPrompt}" 返回JSON: {"评分": 分数, "反馈": "反馈", "优化意见": "建议"}`;
                   
@@ -287,6 +384,10 @@ export async function POST(request: NextRequest) {
                       if (retryMatch) {
                         const retryResult = JSON.parse(retryMatch[0]);
                         if (typeof retryResult.评分 === 'number') {
+                          logger.scoringResult(requestId, retryResult.评分, difficulty, {
+                            testCaseCount: testCases.length,
+                            retryCount
+                          });
                           controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'complete', data: retryResult })}\n\n`));
                           break;
                         }
@@ -328,7 +429,7 @@ export async function POST(request: NextRequest) {
             }
           }
         } catch (error) {
-          console.error('Stream processing error:', error);
+          logger.error('Stream processing error', { requestId }, error as Error);
           controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'error', error: 'Stream processing failed' })}\n\n`));
         } finally {
           reader.releaseLock();
@@ -349,10 +450,26 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Score API error:', error);
+    const totalDuration = performance.now() - startTime;
+    const memoryUsage = getMemoryUsage();
+    
+    logger.error('Score API error', { 
+      requestId, 
+      duration: totalDuration,
+      memoryUsage: memoryUsage || undefined
+    }, error as Error);
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
+  } finally {
+    const totalDuration = performance.now() - startTime;
+    const memoryUsage = getMemoryUsage();
+    
+    logger.apiResponse(requestId, 200, totalDuration, {
+      memoryUsage: memoryUsage || undefined,
+      difficulty: 'medium' // 默认值，实际应该从请求中获取
+    });
   }
 } 
