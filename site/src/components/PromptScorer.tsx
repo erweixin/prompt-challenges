@@ -29,16 +29,16 @@ interface TestResult {
 }
 
 interface DetailedScore {
-  总分: number;
-  清晰度: number;
-  完整性: number;
-  可操作性: number;
-  适应性: number;
-  创新性: number;
-  反馈: string;
-  优化建议: string[];
-  测试结果: TestResult[];
-  详细分析: string;
+  totalScore: number;
+  clarity: number;
+  completeness: number;
+  operability: number;
+  adaptability: number;
+  innovation: number;
+  feedback: string;
+  suggestions: string[];
+  testResults: TestResult[];
+  detailedAnalysis: string;
 }
 
 interface PromptScorerProps {
@@ -88,32 +88,36 @@ export default function PromptScorer({
     }
   };
 
-  // 提取评分信息
-  const extractScoreInfo = (parsedData: {
-    ['评分']: string,
-    ['反馈']: string,
-    ['详细评分']: DetailedScore,
-    ['优化意见']: string,
-    ['测试用例结果']?: TestCaseResult[]
-  }) => {
-    if (typeof parsedData.评分 === 'number') {
-      setScore(Math.round(parsedData.评分 * 10));
+  // 提取评分信息 - 直接使用英文key
+  const extractScoreInfo = (parsedData: Record<string, unknown>) => {
+    const score = parsedData.score;
+    const feedback = parsedData.feedback;
+    const detailedScore = parsedData.detailedScore;
+    const suggestions = parsedData.suggestions;
+    const testCaseResults = parsedData.testCaseResults;
+
+    if (typeof score === 'number') {
+      setScore(Math.round(score * 10));
     }
     
-    if (parsedData.反馈) {
-      setFeedback(parsedData.反馈);
+    if (typeof feedback === 'string') {
+      setFeedback(feedback);
     }
     
-    if (parsedData.详细评分) {
-      setDetailedScore(parsedData.详细评分);
+    if (detailedScore && typeof detailedScore === 'object') {
+      setDetailedScore(detailedScore as DetailedScore);
     }
     
-    if (parsedData.优化意见) {
-      setSuggestions([parsedData.优化意见]);
+    if (suggestions) {
+      if (Array.isArray(suggestions)) {
+        setSuggestions(suggestions as string[]);
+      } else if (typeof suggestions === 'string') {
+        setSuggestions([suggestions]);
+      }
     }
 
-    if (parsedData.测试用例结果) {
-      setTestCaseResults(parsedData.测试用例结果);
+    if (testCaseResults && Array.isArray(testCaseResults)) {
+      setTestCaseResults(testCaseResults as TestCaseResult[]);
     }
   };
 
@@ -143,6 +147,7 @@ export default function PromptScorer({
           // llmResult,
           testCases: testCases.length > 0 ? testCases : undefined,
           difficulty,
+          locale, // 添加locale参数
           // description
         }),
       });
@@ -422,40 +427,40 @@ export default function PromptScorer({
                 {/* Score Dimensions */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
                   <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.清晰度)}`}>
-                      {detailedScore.清晰度}
+                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.clarity * 10)}`}>
+                      {detailedScore.clarity}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       {locale === 'zh' ? '清晰度' : 'Clarity'}
                     </div>
                   </div>
                   <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.完整性)}`}>
-                      {detailedScore.完整性}
+                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.completeness * 10)}`}>
+                      {detailedScore.completeness}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       {locale === 'zh' ? '完整性' : 'Completeness'}
                     </div>
                   </div>
                   <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.可操作性)}`}>
-                      {detailedScore.可操作性}
+                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.operability * 10)}`}>
+                      {detailedScore.operability}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       {locale === 'zh' ? '可操作性' : 'Operability'}
                     </div>
                   </div>
                   <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.适应性)}`}>
-                      {detailedScore.适应性}
+                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.adaptability * 10)}`}>
+                      {detailedScore.adaptability}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       {locale === 'zh' ? '适应性' : 'Adaptability'}
                     </div>
                   </div>
                   <div className="text-center p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.创新性)}`}>
-                      {detailedScore.创新性}
+                    <div className={`text-lg sm:text-xl font-bold ${getDimensionColor(detailedScore.innovation * 10)}`}>
+                      {detailedScore.innovation}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       {locale === 'zh' ? '创新性' : 'Innovation'}
@@ -464,25 +469,25 @@ export default function PromptScorer({
                 </div>
 
                 {/* Detailed Analysis */}
-                {detailedScore.详细分析 && (
+                {detailedScore.detailedAnalysis && (
                   <div className="mb-4">
                     <h5 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2">
                       {locale === 'zh' ? '详细分析' : 'Detailed Analysis'}
                     </h5>
                     <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {detailedScore.详细分析}
+                      {detailedScore.detailedAnalysis}
                     </p>
                   </div>
                 )}
 
                 {/* Test Results */}
-                {detailedScore.测试结果 && detailedScore.测试结果.length > 0 && (
+                {detailedScore.testResults && detailedScore.testResults.length > 0 && (
                   <div>
                     <h5 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2">
                       {locale === 'zh' ? '测试用例结果' : 'Test Case Results'}
                     </h5>
                     <div className="space-y-2">
-                      {detailedScore.测试结果.map((result, index) => (
+                      {detailedScore.testResults.map((result: TestResult, index: number) => (
                         <div key={index} className="p-2 bg-white/30 dark:bg-gray-800/30 rounded-md">
                           <div className="flex justify-between items-center mb-1">
                             <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">

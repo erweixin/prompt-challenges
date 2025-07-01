@@ -17,6 +17,7 @@ interface ScoreRequest {
   }>;
   difficulty?: string;
   promptTemplate?: string;
+  locale?: 'zh' | 'en'; // 新增语言参数
 }
 
 interface TestCaseResult {
@@ -29,37 +30,61 @@ interface TestCaseResult {
   status: 'pass' | 'fail' | 'partial';
 }
 
-interface DetailedScore {
-  总分: number;
-  清晰度: number;
-  完整性: number;
-  可操作性: number;
-  适应性: number;
-  创新性: number;
-  反馈: string;
-  优化建议: string[];
-  测试结果: Array<{
-    testCaseIndex: number;
-    score: number;
+// AI返回的统一格式
+interface AIResponse {
+  score: number;
+  feedback: string;
+  suggestions: string;
+  detailedScore?: {
+    totalScore: number;
+    clarity: number;
+    completeness: number;
+    operability: number;
+    adaptability: number;
+    innovation: number;
     feedback: string;
-  }>;
-  详细分析: string;
+    suggestions: string[];
+    testResults: Array<{
+      testCaseIndex: number;
+      score: number;
+      feedback: string;
+    }>;
+    detailedAnalysis: string;
+  };
+  testCaseResults?: TestCaseResult[];
 }
 
+// 统一响应格式 - 始终使用英文key
 interface ScoreResponse {
-  评分: number;
-  反馈: string;
-  优化意见: string;
-  详细评分?: DetailedScore;
-  测试用例结果?: TestCaseResult[];
+  score: number;
+  feedback: string;
+  suggestions: string;
+  detailedScore?: {
+    totalScore: number;
+    clarity: number;
+    completeness: number;
+    operability: number;
+    adaptability: number;
+    innovation: number;
+    feedback: string;
+    suggestions: string[];
+    testResults: Array<{
+      testCaseIndex: number;
+      score: number;
+      feedback: string;
+    }>;
+    detailedAnalysis: string;
+  };
+  testCaseResults?: TestCaseResult[];
 }
 
-// 简化的评分prompt构建函数
-function buildSimplifiedScoringPrompt(
+// 统一的英文评分prompt构建函数
+function buildUnifiedScoringPrompt(
   userPrompt: string, 
   question: string, 
   testCases: Array<{index: number; expectedOutput: string; actualOutput: string}>,
-  difficulty: string = 'medium'
+  difficulty: string = 'medium',
+  outputLanguage: 'zh' | 'en' = 'zh'
 ): string {
   const weights = {
     'warm': { clarity: 0.3, completeness: 0.3, operability: 0.2, adaptability: 0.1, innovation: 0.1 },
@@ -68,39 +93,49 @@ function buildSimplifiedScoringPrompt(
     'extreme': { clarity: 0.15, completeness: 0.15, operability: 0.2, adaptability: 0.25, innovation: 0.25 }
   }[difficulty] || { clarity: 0.25, completeness: 0.25, operability: 0.2, adaptability: 0.2, innovation: 0.1 };
 
-  return `评估用户prompt质量，难度:${difficulty}
+  const testCasesText = testCases.map(tc => 
+    `Case ${tc.index}: Expected "${tc.expectedOutput}" Actual "${tc.actualOutput}"`
+  ).join('\n');
 
-题目: ${question}
-用户prompt: ${userPrompt}
+  const languageInstruction = outputLanguage === 'zh' 
+    ? 'IMPORTANT: Respond in Chinese (中文). All text content must be in Chinese.'
+    : 'IMPORTANT: Respond in English. All text content must be in English.';
 
-测试用例结果:
-${testCases.map(tc => `用例${tc.index}: 预期"${tc.expectedOutput}" 实际"${tc.actualOutput}"`).join('\n')}
+  return `Evaluate the quality of user prompt, difficulty: ${difficulty}
 
-评分标准(0-10分):
-- 清晰度: 指令明确无歧义
-- 完整性: 覆盖题目要求
-- 可操作性: 模型能准确执行
-- 适应性: 处理不同输入能力
-- 创新性: 解决方案独特性
+Question: ${question}
+User prompt: ${userPrompt}
 
-权重: 清晰度${weights.clarity*100}% 完整性${weights.completeness*100}% 可操作性${weights.operability*100}% 适应性${weights.adaptability*100}% 创新性${weights.innovation*100}%
+Test case results:
+${testCasesText}
 
-输出JSON:
+Scoring criteria (0-10 points):
+- Clarity: Clear and unambiguous instructions
+- Completeness: Covers all requirements  
+- Operability: Model can execute accurately
+- Adaptability: Handles different inputs
+- Innovation: Uniqueness of solution
+
+Weights: Clarity ${weights.clarity*100}% Completeness ${weights.completeness*100}% Operability ${weights.operability*100}% Adaptability ${weights.adaptability*100}% Innovation ${weights.innovation*100}%
+
+${languageInstruction}
+
+Output JSON:
 {
-  "评分": 加权总分,
-  "反馈": "总体评价",
-  "优化意见": "改进建议",
-  "详细评分": {
-    "总分": 加权总分,
-    "清晰度": 分数,
-    "完整性": 分数,
-    "可操作性": 分数,
-    "适应性": 分数,
-    "创新性": 分数,
-    "反馈": "详细反馈",
-    "优化建议": ["建议1", "建议2"],
-    "测试结果": [{"testCaseIndex": 0, "score": 分数, "feedback": "反馈"}],
-    "详细分析": "分析说明"
+  "score": weighted_total_score,
+  "feedback": "overall_evaluation",
+  "suggestions": "improvement_suggestions", 
+  "detailedScore": {
+    "totalScore": weighted_total_score,
+    "clarity": score,
+    "completeness": score,
+    "operability": score,
+    "adaptability": score,
+    "innovation": score,
+    "feedback": "detailed_feedback",
+    "suggestions": ["suggestion1", "suggestion2"],
+    "testResults": [{"testCaseIndex": 0, "score": score, "feedback": "feedback"}],
+    "detailedAnalysis": "analysis_description"
   }
 }`;
 }
@@ -110,12 +145,18 @@ async function executeTestCases(
   testCases: Array<{inputText: string; llmResult: string; description?: string}>,
   userPrompt: string,
   promptTemplate?: string,
-  requestId?: string
+  requestId?: string,
+  locale: 'zh' | 'en' = 'zh'
 ): Promise<Array<{index: number; inputText: string; expectedOutput: string; actualOutput: string}>> {
   const testCasePromises = testCases.map(async (item, index) => {
     const testCaseStartTime = performance.now();
     
     try {
+      // 根据 locale 构造 prompt
+      const testCasePrompt = locale === 'zh'
+        ? `提示词: ${userPrompt}\n文本: ${item.inputText}${promptTemplate ? `\n${promptTemplate}` : ''}`
+        : `Prompt: ${userPrompt}\nText: ${item.inputText}${promptTemplate ? `\n${promptTemplate}` : ''}`;
+
       const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -126,7 +167,7 @@ async function executeTestCases(
           model: 'deepseek-chat',
           messages: [{
             role: 'user',
-            content: `提示词: ${userPrompt}\n文本: ${item.inputText}${promptTemplate ? `\n${promptTemplate}` : ''}`,
+            content: testCasePrompt,
           }],
           temperature: 0.1,
           max_tokens: 2000,
@@ -175,6 +216,17 @@ async function executeTestCases(
   return Promise.all(testCasePromises);
 }
 
+// 统一响应组装 - 始终返回英文key
+function assembleResponse(aiResponse: AIResponse): ScoreResponse {
+  return {
+    score: aiResponse.score,
+    feedback: aiResponse.feedback,
+    suggestions: aiResponse.suggestions,
+    detailedScore: aiResponse.detailedScore,
+    testCaseResults: aiResponse.testCaseResults
+  };
+}
+
 // 组装完整的测试用例结果
 function assembleTestCaseResults(
   testCaseData: Array<{index: number; inputText: string; expectedOutput: string; actualOutput: string}>,
@@ -220,7 +272,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body: ScoreRequest = await request.json();
-    const { userPrompt, question, testCases = [], promptTemplate, difficulty = 'medium' } = body;
+    const { userPrompt, question, testCases = [], promptTemplate, difficulty = 'medium', locale = 'zh' } = body;
 
     // 更新测试用例数量
     logger.info('Request body parsed', { 
@@ -233,8 +285,11 @@ export async function POST(request: NextRequest) {
 
     if (!OPENROUTER_API_KEY) {
       logger.error('OpenRouter API key not configured', { requestId });
+      const errorMessage = locale === 'zh' 
+        ? 'OpenRouter API 密钥未配置'
+        : 'OpenRouter API key not configured';
       return NextResponse.json(
-        { error: 'OpenRouter API key not configured' },
+        { error: errorMessage },
         { status: 500 }
       );
     }
@@ -247,7 +302,7 @@ export async function POST(request: NextRequest) {
     
     const testCaseData = await performanceMonitor.measureAsync(
       'executeTestCases',
-      () => executeTestCases(testCases, userPrompt, promptTemplate, requestId),
+      () => executeTestCases(testCases, userPrompt, promptTemplate, requestId, locale),
       { requestId, testCaseCount: testCases.length }
     );
     
@@ -265,7 +320,7 @@ export async function POST(request: NextRequest) {
       actualOutput: tc.actualOutput,
     }));
 
-    const scoringPrompt = buildSimplifiedScoringPrompt(userPrompt, question, simplifiedTestCases, difficulty);
+    const scoringPrompt = buildUnifiedScoringPrompt(userPrompt, question, simplifiedTestCases, difficulty, locale);
 
     logger.info('Starting AI scoring', { 
       requestId, 
@@ -296,8 +351,11 @@ export async function POST(request: NextRequest) {
       const errorData = await response.text();
       logger.aiModelCall(requestId, 'deepseek-chat', aiScoringDuration, false, { difficulty });
       logger.error('DeepSeek API error', { requestId }, new Error(errorData));
+      const errorMessage = locale === 'zh' 
+        ? '无法从AI模型获取评分'
+        : 'Failed to get score from AI model';
       return NextResponse.json(
-        { error: 'Failed to get score from AI model' },
+        { error: errorMessage },
         { status: 500 }
       );
     }
@@ -325,20 +383,24 @@ export async function POST(request: NextRequest) {
               try {
                 const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
-                  const scoreResult: ScoreResponse = JSON.parse(jsonMatch[0]);
+                  const aiResponse: AIResponse = JSON.parse(jsonMatch[0]);
                   
-                  if (typeof scoreResult.评分 === 'number' && scoreResult.评分 >= 0 && scoreResult.评分 <= 10) {
+                  if (typeof aiResponse.score === 'number' && aiResponse.score >= 0 && aiResponse.score <= 10) {
+                    // 统一组装响应
+                    const scoreResult = assembleResponse(aiResponse);
+                    
                     // 组装完整的测试用例结果
-                    if (scoreResult.详细评分?.测试结果) {
-                      scoreResult.测试用例结果 = assembleTestCaseResults(
+                    if (aiResponse.detailedScore?.testResults) {
+                      scoreResult.testCaseResults = assembleTestCaseResults(
                         testCaseData,
-                        scoreResult.详细评分.测试结果
+                        aiResponse.detailedScore.testResults
                       );
                     }
 
                     // 记录评分结果
-                    logger.scoringResult(requestId, scoreResult.评分, difficulty, {
-                      testCaseCount: testCases.length
+                    logger.scoringResult(requestId, aiResponse.score, difficulty, {
+                      testCaseCount: testCases.length,
+                      locale
                     });
 
                     controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'complete', data: scoreResult })}\n\n`));
@@ -359,7 +421,7 @@ export async function POST(request: NextRequest) {
                     difficulty
                   });
                   
-                  const simplePrompt = `评分(0-10): 题目"${question}" 用户prompt"${userPrompt}" 返回JSON: {"评分": 分数, "反馈": "反馈", "优化意见": "建议"}`;
+                  const simplePrompt = `Score (0-10): Question "${question}" User prompt "${userPrompt}" ${locale === 'zh' ? 'Respond in Chinese.' : 'Respond in English.'} Return JSON: {"score": score, "feedback": "feedback", "suggestions": "suggestions"}`;
                   
                   const retryResponse = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
                     method: 'POST',
@@ -383,12 +445,16 @@ export async function POST(request: NextRequest) {
                       const retryMatch = retryContent.match(/\{[\s\S]*\}/);
                       if (retryMatch) {
                         const retryResult = JSON.parse(retryMatch[0]);
-                        if (typeof retryResult.评分 === 'number') {
-                          logger.scoringResult(requestId, retryResult.评分, difficulty, {
+                        if (typeof retryResult.score === 'number') {
+                          // 根据语言组装重试响应
+                          const retryScoreResult = assembleResponse(retryResult);
+                          
+                          logger.scoringResult(requestId, retryResult.score, difficulty, {
                             testCaseCount: testCases.length,
-                            retryCount
+                            retryCount,
+                            locale
                           });
-                          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'complete', data: retryResult })}\n\n`));
+                          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'complete', data: retryScoreResult })}\n\n`));
                           break;
                         }
                       }
@@ -396,10 +462,10 @@ export async function POST(request: NextRequest) {
                   }
                 }
                 
-                const fallbackResult: ScoreResponse = {
-                  评分: 5,
-                  反馈: 'AI 评分系统暂时无法解析结果，请稍后重试。',
-                  优化意见: '建议检查 prompt 的完整性和清晰度。'
+                const fallbackResult = {
+                  score: 5,
+                  feedback: locale === 'zh' ? 'AI 评分系统暂时无法解析结果，请稍后重试。' : 'AI scoring system unable to parse results, please try again later.',
+                  suggestions: locale === 'zh' ? '建议检查 prompt 的完整性和清晰度。' : 'Please check the completeness and clarity of your prompt.'
                 };
                 controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'complete', data: fallbackResult })}\n\n`));
               }
@@ -453,14 +519,26 @@ export async function POST(request: NextRequest) {
     const totalDuration = performance.now() - startTime;
     const memoryUsage = getMemoryUsage();
     
+    // 尝试从请求中获取locale，默认为中文
+    let locale = 'zh';
+    try {
+      const body = await request.json();
+      locale = body.locale || 'zh';
+    } catch {
+      // 如果无法解析请求体，使用默认值
+    }
+    
     logger.error('Score API error', { 
       requestId, 
       duration: totalDuration,
       memoryUsage: memoryUsage || undefined
     }, error as Error);
     
+    const errorMessage = locale === 'zh' 
+      ? '内部服务器错误'
+      : 'Internal server error';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   } finally {
