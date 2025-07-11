@@ -120,7 +120,7 @@ Weights: Clarity ${weights.clarity*100}% Completeness ${weights.completeness*100
 
 ${languageInstruction}
 
-Output JSON:
+Output:
 {
   "score": weighted_total_score,
   "feedback": "overall_evaluation",
