@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { getDictionary } from '../utils/i18n';
 import TestCaseResults from './TestCaseResults';
+import { jsonrepair } from 'jsonrepair';
 
 interface TestCase {
   inputText: string;
@@ -73,17 +74,21 @@ export default function PromptScorer({
   const [testCaseResults, setTestCaseResults] = useState<TestCaseResult[]>([]);
   const dict = getDictionary(locale);
 
-  // 智能JSON解析函数
+  // 使用jsonrepair修复JSON解析函数
   const tryParseJSON = (content: string) => {
     try {
-      // 尝试找到完整的JSON对象
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+      // 尝试找到JSON对象
+      if (content.startsWith('```json')) {
+        content = content.slice(7);
       }
-      return null;
+      if (content.endsWith('```')) {
+        content = content.slice(0, -3);
+      }
+      // const jsonMatch = content.match(/\{[\s\S]*\}/);
+      const repairedJson = jsonrepair(content);
+      return JSON.parse(repairedJson);
     } catch (error) {
-      console.log(error);
+      console.log('JSON parsing error:', error);
       return null;
     }
   };
@@ -165,7 +170,6 @@ export default function PromptScorer({
       }
 
       let fullResponse = '';
-      let hasParsedJSON = false;
       
       try {
         while (true) {
@@ -173,15 +177,12 @@ export default function PromptScorer({
           
           if (done) {
             // 流结束，最终尝试解析
-            if (!hasParsedJSON) {
-              const finalParsed = tryParseJSON(fullResponse);
-              if (finalParsed) {
-                extractScoreInfo(finalParsed);
-                hasParsedJSON = true;
-              } else {
-                // 如果无法解析JSON，显示原始内容作为反馈
-                setFeedback(fullResponse || '无法解析评分结果');
-              }
+            const finalParsed = tryParseJSON(fullResponse);
+            if (finalParsed) {
+              extractScoreInfo(finalParsed);
+            } else {
+              // 如果无法解析JSON，显示原始内容作为反馈
+              setFeedback(fullResponse || '无法解析评分结果');
             }
             break;
           }
@@ -201,29 +202,29 @@ export default function PromptScorer({
                 if (parsed.type === 'partial' && parsed.content) {
                   // 处理部分内容
                   fullResponse += parsed.content;
-                  setStreamingContent(fullResponse);
                   
-                  // 尝试解析累积的内容
-                  if (!hasParsedJSON) {
+                  // 返回值的前六个字符是"```json"，没啥意义，所以如果长度小于7，则返回
+                  if (fullResponse.length > 12) {
+                    setStreamingContent(fullResponse);
+                    // 尝试解析累积的内容
                     const parsedData = tryParseJSON(fullResponse);
                     if (parsedData) {
                       extractScoreInfo(parsedData);
-                      hasParsedJSON = true;
                       // 清除流式内容，显示解析后的结果
                       setStreamingContent('');
                     }
                   }
+                  
                 } else if (parsed.type === 'complete' && parsed.data) {
                   // 处理完整结果
                   extractScoreInfo(parsed.data);
-                  hasParsedJSON = true;
                   setStreamingContent('');
                 } else if (parsed.type === 'error') {
                   setFeedback(parsed.error || '评分过程中出现错误');
                   setStreamingContent('');
                 }
               } catch (error) {
-                console.log(error);
+                console.log('Stream parsing error:', error);
                 // 忽略解析错误，继续处理
               }
             }
