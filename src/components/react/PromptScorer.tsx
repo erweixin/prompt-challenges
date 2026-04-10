@@ -55,6 +55,7 @@ export default function PromptScorer({
   locale,
   description,
 }: PromptScorerProps) {
+  const practiceEnabled = false;
   const [prompt, setPrompt] = useState('');
   const [score, setScore] = useState<number | null>(null);
   const [detailedScore, setDetailedScore] = useState<DetailedScore | null>(null);
@@ -193,13 +194,25 @@ export default function PromptScorer({
 
   return (
     <div className="space-y-5">
+      {!practiceEnabled && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-4 text-sm text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
+          <p className="font-semibold">{dict.practiceComingSoonTitle}</p>
+          <p className="mt-2 leading-relaxed">{dict.practiceComingSoonBody}</p>
+          <p className="mt-2 text-xs text-amber-800 dark:text-amber-200">{dict.practiceComingSoonHint}</p>
+        </div>
+      )}
+
       <div>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder={dict.promptPlaceholder}
-          className="w-full min-h-[8rem] rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] bg-white dark:bg-stone-900/50 px-3 py-2 text-sm text-[var(--color-ink)] dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/40"
-          disabled={isLoading}
+          className={`w-full min-h-[8rem] rounded-lg border px-3 py-2 text-sm ${
+            practiceEnabled
+              ? 'border-[var(--color-border)] dark:border-[var(--color-border-dark)] bg-white dark:bg-stone-900/50 text-[var(--color-ink)] dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/40'
+              : 'border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800/60 text-stone-400 dark:text-stone-500 cursor-not-allowed'
+          }`}
+          disabled={isLoading || !practiceEnabled}
         />
         <div className="text-right text-xs text-[var(--color-ink-muted)] mt-1">{prompt.length} / 2000</div>
       </div>
@@ -207,19 +220,23 @@ export default function PromptScorer({
       <button
         type="button"
         onClick={handleSubmit}
-        disabled={!prompt.trim() || isLoading}
-        className="w-full rounded-lg bg-[var(--color-accent)] py-2.5 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={!prompt.trim() || isLoading || !practiceEnabled}
+        className={`w-full rounded-lg py-2.5 text-sm font-medium ${
+          practiceEnabled
+            ? 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed'
+            : 'bg-stone-300 text-stone-600 dark:bg-stone-700 dark:text-stone-300 cursor-not-allowed'
+        }`}
       >
-        {isLoading ? dict.scoring : dict.scorePrompt}
+        {practiceEnabled ? (isLoading ? dict.scoring : dict.scorePrompt) : dict.practiceComingSoonTitle}
       </button>
 
-      {streamingContent && isLoading && (
+      {practiceEnabled && streamingContent && isLoading && (
         <div className="rounded-lg border border-dashed border-[var(--color-border)] p-3 text-sm text-[var(--color-ink-muted)] whitespace-pre-wrap">
           {streamingContent}
         </div>
       )}
 
-      {score !== null && (
+      {practiceEnabled && score !== null && (
         <div className="rounded-xl border border-[var(--color-border)] dark:border-[var(--color-border-dark)] p-4 text-center">
           <p className="text-sm text-[var(--color-ink-muted)]">{dict.scoreOutOf}</p>
           <p className="text-3xl font-semibold text-[var(--color-accent)] mt-1">{score}</p>
@@ -227,7 +244,7 @@ export default function PromptScorer({
         </div>
       )}
 
-      {detailedScore && (
+      {practiceEnabled && detailedScore && (
         <div className="rounded-xl border border-[var(--color-border)] dark:border-[var(--color-border-dark)] p-4 text-sm">
           <p className="font-medium mb-2 text-[var(--color-ink)] dark:text-stone-100">
             {locale === 'zh' ? '维度' : 'Dimensions'}
@@ -242,15 +259,15 @@ export default function PromptScorer({
         </div>
       )}
 
-      {testCaseResults.length > 0 && <TestCaseResults testCases={testCaseResults} locale={locale} />}
+      {practiceEnabled && testCaseResults.length > 0 && <TestCaseResults testCases={testCaseResults} locale={locale} />}
 
-      {feedback && !streamingContent && (
+      {practiceEnabled && feedback && !streamingContent && (
         <div className="rounded-lg border border-[var(--color-border)] p-3 text-sm text-[var(--color-ink)]">
           {feedback}
         </div>
       )}
 
-      {suggestions.length > 0 && (
+      {practiceEnabled && suggestions.length > 0 && (
         <div className="rounded-lg border border-[var(--color-border)] p-3 text-sm">
           <p className="font-medium mb-2">{dict.tip5}</p>
           <ul className="list-disc pl-4 space-y-1 text-[var(--color-ink-muted)]">
