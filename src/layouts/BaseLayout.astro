@@ -1,0 +1,36 @@
+---
+import '../styles/global.css';
+import { useUi } from '../i18n/ui';
+
+interface Props {
+  title: string;
+  description?: string;
+  locale: 'zh' | 'en';
+}
+
+const { title, description, locale } = Astro.props;
+const brand = useUi(locale).siteTitle;
+---
+
+<!doctype html>
+<html lang={locale === 'zh' ? 'zh-CN' : 'en'}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {description && <meta name="description" content={description} />}
+    <title>{title} · {brand}</title>
+    <script is:inline>
+      try {
+        const t = localStorage.getItem('theme');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch {}
+    </script>
+  </head>
+  <body class="min-h-screen text-[var(--color-ink)] dark:text-stone-200">
+    <slot />
+  </body>
+</html>

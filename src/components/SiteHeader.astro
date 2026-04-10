@@ -1,0 +1,44 @@
+---
+import { useUi } from '../i18n/ui';
+
+interface Props {
+  locale: 'zh' | 'en';
+}
+
+const { locale } = Astro.props;
+const t = useUi(locale);
+const other = locale === 'zh' ? 'en' : 'zh';
+const path = Astro.url.pathname.replace(/^\/(zh|en)/, `/${other}`);
+---
+
+<header class="border-b border-[var(--color-border)] dark:border-[var(--color-border-dark)] bg-[var(--color-paper)]/90 dark:bg-[var(--color-paper-dark)]/90 backdrop-blur-sm sticky top-0 z-20">
+  <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
+    <a href={`/${locale}/`} class="text-sm font-semibold tracking-tight text-[var(--color-ink)] dark:text-stone-100 hover:text-[var(--color-accent)]">
+      {t.siteTitle}
+    </a>
+    <nav class="flex items-center gap-3 text-sm text-[var(--color-ink-muted)]">
+      <a href={`/${locale}/#path`} class="hover:text-[var(--color-accent)]">{t.navPath}</a>
+      <a href={`/${locale}/#all`} class="hover:text-[var(--color-accent)]">{t.navChallenges}</a>
+      <a href={`/${locale}/#resources`} class="hover:text-[var(--color-accent)]">{t.navResources}</a>
+      <a href={path} class="rounded-md border border-[var(--color-border)] dark:border-[var(--color-border-dark)] px-2 py-0.5 text-xs uppercase hover:border-[var(--color-accent)]">
+        {other}
+      </a>
+      <button
+        type="button"
+        id="theme-toggle"
+        class="rounded-md border border-[var(--color-border)] dark:border-[var(--color-border-dark)] px-2 py-0.5 text-xs"
+        aria-label="Toggle theme"
+      >
+        ◐
+      </button>
+    </nav>
+  </div>
+</header>
+
+<script>
+  document.getElementById('theme-toggle')?.addEventListener('click', () => {
+    const root = document.documentElement;
+    root.classList.toggle('dark');
+    localStorage.setItem('theme', root.classList.contains('dark') ? 'dark' : 'light');
+  });
+</script>

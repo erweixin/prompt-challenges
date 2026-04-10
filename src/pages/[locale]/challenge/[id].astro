@@ -1,0 +1,110 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import SiteHeader from '../../../components/SiteHeader.astro';
+import { getCollection, getEntry } from 'astro:content';
+import { getAdjacentByOrder, getChallengesForLocale } from '../../../lib/challenges';
+import { useUi } from '../../../i18n/ui';
+import PromptScorer from '../../../components/react/PromptScorer';
+import type { Locale } from '../../../i18n/ui';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const all = await getCollection('challenges');
+  return all.map((entry) => ({
+    params: { locale: entry.data.locale, id: entry.data.id },
+    props: { slug: entry.slug },
+  }));
+}
+
+const { slug } = Astro.props;
+const { locale: locParam, id } = Astro.params;
+
+const entry = await getEntry('challenges', slug);
+if (!entry) {
+  return Astro.redirect('/zh/');
+}
+
+const loc = (locParam === 'en' ? 'en' : 'zh') as Locale;
+const t = useUi(loc);
+
+const list = await getChallengesForLocale(loc);
+const { prev, next } = getAdjacentByOrder(list, id!);
+
+const { Content } = await entry.render();
+
+const showScorer = entry.data.contentKind === 'practice';
+const testCases =
+  entry.data.testCases?.map((tc) => ({
+    inputText: tc.inputText,
+    llmResult: tc.llmResult,
+    description: tc.description,
+  })) ?? [];
+---
+
+<BaseLayout title={entry.data.title} description={entry.data.description} locale={loc}>
+  <SiteHeader locale={loc} />
+  <main class="mx-auto max-w-6xl px-4 py-8 md:py-10">
+    <div class="mb-6 flex flex-wrap items-center gap-2 text-sm text-[var(--color-ink-muted)]">
+      <a href={`/${loc}/`} class="hover:text-[var(--color-accent)]">{t.backHome}</a>
+      <span aria-hidden="true">/</span>
+      <span>{t.challengeMeta}</span>
+      <span aria-hidden="true">·</span>
+      <span>{t.difficulty[entry.data.difficulty]}</span>
+    </div>
+
+    <div class={`grid gap-8 ${showScorer ? 'lg:grid-cols-2 lg:gap-10' : ''}`}>
+      <article class="min-w-0">
+        <h1 class="text-2xl md:text-3xl font-semibold tracking-tight text-[var(--color-ink)] dark:text-stone-100 mb-3">
+          {entry.data.title}
+        </h1>
+        <p class="text-[var(--color-ink-muted)] mb-8 leading-relaxed">{entry.data.description}</p>
+        <div class="prose-learning">
+          <Content />
+        </div>
+      </article>
+
+      {
+        showScorer && (
+          <aside class="min-w-0 border border-[var(--color-border)] dark:border-[var(--color-border-dark)] rounded-xl p-4 md:p-6 bg-white/60 dark:bg-stone-900/40">
+            <h2 class="text-sm font-semibold mb-1 text-[var(--color-ink)] dark:text-stone-100">{t.writePrompt}</h2>
+            <p class="text-xs text-[var(--color-ink-muted)] mb-4">{t.writePromptHint}</p>
+            <PromptScorer
+              client:load
+              locale={loc}
+              testCases={testCases}
+              difficulty={entry.data.difficulty}
+              description={entry.data.description}
+              promptTemplate={entry.data.promptTemplate}
+            />
+          </aside>
+        )
+      }
+    </div>
+
+    <p class="mt-10 text-sm text-[var(--color-ink-muted)]">
+      <a href={`/${loc}/#resources`} class="text-[var(--color-accent)] hover:underline">{t.resourcesTitle}</a>
+    </p>
+
+    <nav class="mt-6 flex flex-wrap justify-between gap-4 border-t border-[var(--color-border)] dark:border-[var(--color-border-dark)] pt-8 text-sm">
+      <div>
+        {
+          prev && (
+            <a href={`/${loc}/challenge/${prev.data.id}/`} class="text-[var(--color-accent)] hover:underline">
+              ← {t.prev}：{prev.data.title}
+            </a>
+          )
+        }
+      </div>
+      <div>
+        {
+          next && (
+            <a href={`/${loc}/challenge/${next.data.id}/`} class="text-[var(--color-accent)] hover:underline">
+              {t.next}：{next.data.title} →
+            </a>
+          )
+        }
+      </div>
+    </nav>
+  </main>
+</BaseLayout>
