@@ -1,0 +1,45 @@
+---
+import { getLearningResourceGroups } from '../data/learning-resources';
+import { useUi } from '../i18n/ui';
+
+interface Props {
+  locale: 'zh' | 'en';
+}
+
+const { locale } = Astro.props;
+const t = useUi(locale);
+const groups = getLearningResourceGroups(locale);
+---
+
+<section id="resources" class="scroll-mt-24 border-t border-[var(--color-border)] dark:border-[var(--color-border-dark)] pt-14">
+  <h2 class="text-xl font-semibold mb-2 text-[var(--color-ink)] dark:text-stone-100">
+    {t.resourcesSectionTitle}
+  </h2>
+  <p class="text-sm text-[var(--color-ink-muted)] mb-8 max-w-2xl leading-relaxed">
+    {t.resourcesSectionIntro}
+  </p>
+  <div class="space-y-10">
+    {
+      groups.map((group) => (
+        <div>
+          <h3 class="text-sm font-medium text-[var(--color-accent)] mb-3">{group.title}</h3>
+          <ul class="space-y-3">
+            {group.items.map((item) => (
+              <li class="rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] px-4 py-3 bg-white/40 dark:bg-stone-900/30">
+                <a
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="font-medium text-[var(--color-ink)] dark:text-stone-100 hover:text-[var(--color-accent)]"
+                >
+                  {item.title}
+                </a>
+                <p class="text-sm text-[var(--color-ink-muted)] mt-1 leading-relaxed">{item.description}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </div>
+</section>

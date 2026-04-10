@@ -1,20 +1,22 @@
 # Prompt Challenges 项目 Cursor Rules
 
 ## 项目概述
-这是一个Prompt Engineering挑战题库项目，类似LeetCode的编程题库，但专注于AI提示词工程技能训练。
+大众向大模型学习路径：从清晰表达需求到工具、MCP、Skills、Harness；题库为全新命题，旧题已归档至 `_archive/questions/`。
 
 ## 技术栈
-- **前端**: Next.js 15 + TypeScript + Tailwind CSS
-- **内容**: Markdown格式的挑战题目
-- **国际化**: 支持中英文双语
-- **部署**: Vercel
+- **站点**: Astro 5 + TypeScript + Tailwind CSS v4（`@tailwindcss/vite`）
+- **交互岛**: React 19（如 `PromptScorer`）
+- **内容**: `src/content/challenges/` Markdown + Content Collection（`src/content.config.ts`）
+- **国际化**: 路由前缀 `/zh`、`/en`
+- **部署**: Cloudflare Pages + Worker（`@astrojs/cloudflare`）；评分 API 为 `src/pages/api/score.ts`
+- **参考**: 旧 Next 实现见 `_legacy/site/`（勿作为运行入口）
 
 ## 代码规范
 
 ### 文件命名
 - 组件文件使用PascalCase: `ChallengeCard.tsx`
 - 工具函数使用camelCase: `challenge-parser.ts`
-- 页面文件使用kebab-case: `[locale]/page.tsx`
+- Astro 页面：`src/pages/.../*.astro`
 - 挑战文件使用数字前缀: `00-text-summary.md`
 
 ### TypeScript规范
@@ -46,23 +48,24 @@ export function Component({ prop }: ComponentProps) {
 
 ## 项目结构规范
 
-### 挑战题目结构
+### 挑战题目结构（Content Collection）
 ```
-questions/
-├── warm/          # 简单难度
-├── medium/        # 中等难度  
-├── hard/          # 困难难度
-└── extreme/       # 地狱难度
+src/content/challenges/
+├── *.zh.md / *.en.md   # 文件名区分语言；frontmatter: id, locale, learningStage, learningOrder, contentKind, difficulty
+└── （旧 questions/ 已迁至 _archive/questions/）
 ```
 
 ### 网站结构
 ```
-site/src/
-├── app/           # Next.js App Router
-├── components/    # React组件
-├── data/          # 数据文件
-├── types/         # TypeScript类型定义
-└── utils/         # 工具函数
+src/
+├── content/challenges/  # 题目 Markdown
+├── pages/               # Astro 路由（含 api/score）
+├── components/          # .astro + react/
+├── layouts/
+├── lib/                 # 排序、分组等
+├── i18n/
+├── server/              # 评分逻辑
+└── styles/
 ```
 
 ## 挑战题目编写规范
@@ -107,17 +110,14 @@ site/src/
 
 ## 性能优化
 
-### Next.js优化
-- 使用App Router
-- 实现静态生成(SSG)
-- 优化图片加载
-- 启用代码分割
+### Astro 优化
+- 默认少 JS；交互使用 React island（`client:load`）
+- 读本/列表预渲染；`/api/score` 保持服务端
+- 图片与资源走 `public/`
 
 ### 代码优化
-- 避免不必要的重渲染
-- 使用React.memo优化组件
-- 实现懒加载
-- 优化包大小
+- React 组件仅保留评分岛等必要交互
+- 避免在岛外引入大型客户端库
 
 ## 测试规范
 

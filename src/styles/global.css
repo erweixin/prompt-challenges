@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* Claude-like: warm paper, single accent */
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-paper: #faf8f5;
+  --color-paper-dark: #141210;
+  --color-ink: #2c2825;
+  --color-ink-muted: #6b6560;
+  --color-accent: #c15f3c;
+  --color-accent-hover: #a34e31;
+  --color-border: #e8e4de;
+  --color-border-dark: #2a2724;
+}
+
+html {
+  @apply antialiased;
+}
+
+body {
+  @apply bg-[var(--color-paper)] text-[var(--color-ink)] dark:bg-[var(--color-paper-dark)] dark:text-stone-200;
+}
+
+.prose-learning {
+  @apply max-w-none leading-relaxed text-[var(--color-ink)] dark:text-stone-200;
+}
+
+.prose-learning :where(h2) {
+  @apply text-lg font-semibold mt-8 mb-3 text-[var(--color-ink)] dark:text-stone-100;
+}
+
+.prose-learning :where(h3) {
+  @apply text-base font-semibold mt-6 mb-2;
+}
+
+.prose-learning :where(p, ul, ol) {
+  @apply my-3 text-[var(--color-ink-muted)];
+}
+
+.prose-learning :where(ul, ol) {
+  @apply pl-5 space-y-1;
+}
+
+.prose-learning :where(a) {
+  @apply text-[var(--color-accent)] underline-offset-2 hover:underline;
+}
+
+.prose-learning :where(li) {
+  @apply text-[var(--color-ink-muted)];
+}

@@ -1,0 +1,119 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import LearningResources from '../../components/LearningResources.astro';
+import { getCollection } from 'astro:content';
+import { groupByStage, orderedStages } from '../../lib/challenges';
+import { stageLabel, useUi } from '../../i18n/ui';
+import { getStageGuide } from '../../data/learning-path';
+
+export const prerender = true;
+
+export function getStaticPaths() {
+  return [{ params: { locale: 'zh' } }, { params: { locale: 'en' } }];
+}
+
+const localeParam = Astro.params.locale;
+const loc = localeParam === 'en' ? 'en' : 'zh';
+const t = useUi(loc);
+
+const all = await getCollection('challenges');
+const entries = all
+  .filter((e) => e.data.locale === loc)
+  .sort((a, b) => a.data.learningOrder - b.data.learningOrder);
+
+const grouped = groupByStage(entries);
+const stages = orderedStages();
+---
+
+<BaseLayout title={t.siteTitle} description={t.siteTagline} locale={loc}>
+  <SiteHeader locale={loc} />
+  <main class="mx-auto max-w-3xl px-4 py-12 md:py-16">
+    <p class="text-xs uppercase tracking-widest text-[var(--color-ink-muted)] mb-3">{t.navPath}</p>
+    <h1 class="text-3xl md:text-4xl font-semibold tracking-tight text-[var(--color-ink)] dark:text-stone-100 mb-4">
+      {t.siteTitle}
+    </h1>
+    <p class="text-lg text-[var(--color-ink-muted)] leading-relaxed mb-10 max-w-2xl">
+      {t.siteTagline}
+    </p>
+    <p class="text-sm md:text-base text-[var(--color-ink-muted)] leading-relaxed mb-10 max-w-3xl">
+      {t.pathIntro}
+    </p>
+
+    <div class="flex flex-wrap gap-3 mb-16">
+      <a
+        href="#path"
+        class="inline-flex items-center rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)]"
+      >
+        {t.ctaStart}
+      </a>
+      <a
+        href="https://github.com/erweixin/prompt-challenges"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center rounded-lg border border-[var(--color-border)] dark:border-[var(--color-border-dark)] px-4 py-2.5 text-sm font-medium hover:border-[var(--color-accent)]"
+      >
+        {t.ctaGithub}
+      </a>
+    </div>
+
+    <section id="path" class="scroll-mt-24 mb-16">
+      <h2 class="text-xl font-semibold mb-6 text-[var(--color-ink)] dark:text-stone-100">{t.navPath}</h2>
+      <div class="space-y-10">
+        {
+          stages.map((stage) => {
+            const list = grouped.get(stage);
+            const guide = getStageGuide(loc, stage);
+            if (!list?.length) return null;
+            return (
+              <div>
+                <h3 class="text-sm font-medium text-[var(--color-accent)] mb-3">{stageLabel(loc, stage)}</h3>
+                {
+                  guide && (
+                      <div class="mb-4 rounded-xl border border-[var(--color-border)] dark:border-[var(--color-border-dark)] bg-white/50 dark:bg-stone-900/30 px-4 py-3 text-sm leading-relaxed text-[var(--color-ink-muted)]">
+                      <p><strong class="text-[var(--color-ink)] dark:text-stone-100">这一段先解决什么：</strong> {guide.before}</p>
+                      <p><strong class="text-[var(--color-ink)] dark:text-stone-100">你会学到什么：</strong> {guide.after}</p>
+                      <p><strong class="text-[var(--color-ink)] dark:text-stone-100">学完后你能做什么：</strong> {guide.outcome}</p>
+                    </div>
+                  )
+                }
+                <ul class="space-y-2 border-l border-[var(--color-border)] dark:border-[var(--color-border-dark)] pl-4">
+                  {list.map((e) => (
+                    <li>
+                      <a
+                        href={`/${loc}/challenge/${e.data.id}/`}
+                        class="text-[var(--color-ink)] dark:text-stone-200 hover:text-[var(--color-accent)]"
+                      >
+                        <span class="font-medium">{e.data.title}</span>
+                        <span class="text-[var(--color-ink-muted)] text-sm ml-2">
+                          · {e.data.contentKind === 'reading' ? t.kindReading : t.kindPractice}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })
+        }
+      </div>
+    </section>
+
+    <section id="all" class="scroll-mt-24">
+      <h2 class="text-xl font-semibold mb-4">{t.navChallenges}</h2>
+      <ol class="list-decimal pl-5 space-y-2 text-[var(--color-ink-muted)]">
+        {
+          entries.map((e) => (
+            <li>
+              <a href={`/${loc}/challenge/${e.data.id}/`} class="text-[var(--color-ink)] dark:text-stone-200 hover:text-[var(--color-accent)]">
+                {e.data.title}
+              </a>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+
+    <LearningResources locale={loc} />
+  </main>
+</BaseLayout>

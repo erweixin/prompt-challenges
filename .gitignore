@@ -1,0 +1,18 @@
+# build
+dist/
+.astro/
+
+# deps
+node_modules/
+
+# env
+.env
+.env.local
+.env.production
+
+# os
+.DS_Store
+
+# wrangler
+.wrangler/
+.dev.vars

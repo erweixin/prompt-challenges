@@ -1,0 +1,11 @@
+name = "prompt-challenges"
+compatibility_date = "2025-04-01"
+pages_build_output_dir = "dist"
+
+# 本地 / Pages：绑定 OPENROUTER_API_KEY（或 DeepSeek 兼容端点密钥）
+# 在 Cloudflare Pages → Settings → Environment variables 中配置
+
+# @astrojs/cloudflare 若提示 SESSION KV：在 Dashboard 创建 KV 命名空间后取消注释并填入 id
+# [[kv_namespaces]]
+# binding = "SESSION"
+# id = "your_kv_namespace_id"
